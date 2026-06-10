@@ -1,0 +1,97 @@
+image upload -->pytesscreet --> feed to ai(for crrection) -->  verification{documentid} Verify (ai) --> Insinde that map with the signals= red, orange, yellow, green (example if missing feind {fieldname}={signal})
+
+signals= red,orange,yellow,green
+
+Groq = .cursor/skills/groq/SKILLS.md 
+
+
+Image/PDF Upload
+        │
+        ▼
+     IMAGE1, IMAGE2
+        │        │
+        ▼        ▼
+     
+    (feed to groq) parallery image1 process 2 at a same time
+             │
+             │
+             ▼
+             Rag(Prompt)app/core/promts 
+        ------
+        │
+        ▼
+Structured output
+        │
+        ▼
+
+ 
+{
+  document_id,
+  name,
+  dob,
+  citizenship_no,
+  address,
+  ...
+}
+        │
+        ▼
+ Verification Engine
+ (Rules + AI)
+        │
+        ▼
+ Field Validation
+        │
+        ▼
+ Signal Assignment
+        │
+        ▼
+ Verification Report
+
+ 1. Bank KYC Rules / Fields
+Key Fields to Extract:
+
+Name
+Father Name
+Citizenship Number
+PAN Number
+Expiry Date
+Address
+Amount / Income
+Photo Match (if possible)
+Document Type (Citizenship, PAN, Bank Statement, etc.)
+
+Critical Rules for Bank:
+
+Name mismatch between documents → RED
+Citizenship Number mismatch → RED
+PAN Number mismatch or missing → RED
+Document is expired → RED
+Photo does not match → RED
+Father Name variation → ORANGE
+Address mismatch → ORANGE
+Declared income too low for loan → ORANGE
+
+
+2. Manpower Agency Rules / Fields
+Key Fields to Extract:
+
+Worker Name
+Father Name
+Agency Name
+License Number
+Promised Salary / Amount
+Destination Country
+Expiry Date (License / Contract)
+Payment Date
+Deployment Date
+
+Critical Rules for Manpower Agency:
+
+Worker Name mismatch → RED
+Salary / Promised amount mismatch → RED
+Destination country mismatch → RED
+Agency License number mismatch or invalid → RED
+License or Contract expired → RED
+Payment date after deployment date (impossible) → RED
+Agency name variation → RED
+Father name mismatch → ORANGE
