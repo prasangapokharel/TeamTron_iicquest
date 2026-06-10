@@ -1,1 +1,32 @@
-BACKEND_URL=http://localhost:8000/api/v1
+# VivadX Frontend
+
+Next.js app wired to the VIVAD X backend API.
+
+## Setup
+
+```bash
+cp .env.local.example .env.local
+npm install
+npm run dev
+```
+
+Backend must be running at `http://localhost:8000`.
+
+## Routes
+
+| Route | API |
+|-------|-----|
+| `/login` | POST `/auth/login` |
+| `/signup`, `/register` | POST `/auth/register` |
+| `/dashboard` | GET `/company/dashboard` |
+| `/documents` | GET `/document` |
+| `/documents/upload` | POST `/document/verify` |
+| `/documents/:id/result` | GET `/document/:id/result` |
+| `/criteria` | GET `/criteria`, POST `/criteria/enroll` |
+| `/signatures` | GET `/signature` |
+| `/assistant` | POST `/assistant/chat` |
+| `/settings/profile` | GET/PATCH `/company/me`, POST `/company/logo` |
+| `/settings/balance` | GET/POST `/balance/topup` |
+| `/settings/api-keys` | GET/POST/DELETE `/apikey` |
+| `/settings/payments` | GET/POST `/payment` |
+| `/verify/:txid` | GET `/signature/verify/:txid` (public) |

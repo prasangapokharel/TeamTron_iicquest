@@ -1,77 +1,66 @@
 import Link from "next/link";
-import { CheckCircle, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 
-const DEFAULT_PERKS = [
-  "AI-powered document analysis in seconds",
-  "Red / Orange / Green risk flags",
-  "Tron blockchain verification proof",
-  "Dynamic rules for every industry",
+const SPECS = [
+  { term: "Verify", detail: "Upload documents and receive a structured risk verdict" },
+  { term: "Integrate", detail: "REST API with company-scoped keys" },
+  { term: "Audit", detail: "Each approved run anchored on Tron" },
 ];
 
 export function AuthLayout({
   children,
   title,
   subtitle,
-  perks = DEFAULT_PERKS,
   footer,
 }: {
   children: React.ReactNode;
   title: string;
   subtitle: string;
-  perks?: string[];
   footer?: React.ReactNode;
 }) {
   return (
     <div className="auth-page">
-      <div className="auth-split">
-        <aside className="auth-brand-panel">
-          <div className="auth-brand-inner">
-            <Link href="/" className="auth-back-home">
-              <ArrowLeft size={14} />
-              Back to home
-            </Link>
-            <Logo className="mt-8" />
-            <h1 className="auth-brand-title">
-              Verify documents in seconds, not hours.
-            </h1>
-            <p className="auth-brand-subtitle">
-              VivadX helps banks and agencies reconcile documents with AI and
-              blockchain-backed audit trails.
+      <div className="auth-shell">
+        <aside className="auth-aside">
+          <Link href="/" className="auth-back">
+            <ArrowLeft size={14} strokeWidth={1.75} />
+            Home
+          </Link>
+
+          <div className="auth-aside-body">
+            <Logo size="lg" href="/" />
+            <p className="auth-aside-lead">
+              Document verification for regulated teams in Nepal.
             </p>
-            <ul className="auth-perks">
-              {perks.map((p) => (
-                <li key={p}>
-                  <CheckCircle size={16} strokeWidth={2} />
-                  {p}
-                </li>
-              ))}
-            </ul>
-            <blockquote className="auth-quote">
-              <p>
-                &ldquo;We cut document verification time from 2 hours to under
-                10 seconds — with proof auditors actually trust.&rdquo;
-              </p>
-              <footer>Compliance officer, commercial bank</footer>
-            </blockquote>
           </div>
+
+          <dl className="auth-specs">
+            {SPECS.map((item) => (
+              <div key={item.term} className="auth-spec">
+                <dt>{item.term}</dt>
+                <dd>{item.detail}</dd>
+              </div>
+            ))}
+          </dl>
         </aside>
 
-        <div className="auth-form-panel">
-          <div className="auth-form-wrap">
-            <div className="auth-mobile-logo md:hidden">
-              <Logo />
+        <main className="auth-main">
+          <div className="auth-main-inner">
+            <div className="auth-main-logo">
+              <Logo href="/" />
             </div>
-            <div className="auth-card">
-              <div className="auth-card-header">
-                <h2 className="auth-card-title">{title}</h2>
-                <p className="auth-card-subtitle">{subtitle}</p>
-              </div>
-              {children}
-            </div>
+
+            <header className="auth-header">
+              <h1 className="auth-header-title">{title}</h1>
+              <p className="auth-header-desc">{subtitle}</p>
+            </header>
+
+            <div className="auth-body">{children}</div>
+
             {footer && <div className="auth-footer">{footer}</div>}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
@@ -80,10 +69,12 @@ export function AuthLayout({
 export function AuthField({
   id,
   label,
+  hint,
   children,
 }: {
   id: string;
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -92,6 +83,7 @@ export function AuthField({
         {label}
       </label>
       {children}
+      {hint && <p className="auth-field-hint">{hint}</p>}
     </div>
   );
 }

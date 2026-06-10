@@ -72,7 +72,7 @@ export function ApiSection() {
                 "Webhook callbacks for async processing",
               ].map((item) => (
                 <li key={item} className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] shrink-0" />
+                  <span className="w-1.5 h-1.5 bg-[var(--primary)] shrink-0" />
                   {item}
                 </li>
               ))}
