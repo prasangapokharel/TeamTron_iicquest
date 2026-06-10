@@ -4,11 +4,41 @@ from fastapi import HTTPException
 from app.helper.crude import create, read, update
 from app.service.tron.tron import hash_fields, sign_on_tron
 from app.service.groq.groq import extract_parallel, merge_extractions
-from app.utils.severity import build_flags, compute_risk_score, get_verdict, GREEN, RED
+from app.utils.severity import build_flags, compute_risk_score, get_verdict, GREEN, RED, ORANGE
 from db.models.criteria import Criteria
+from db.models.criteria_enroll import CriteriaEnroll
 from db.models.document import Document
 from db.models.document_enroll import DocumentEnroll, DocumentStatus
 from db.models.signature import Signature
+
+
+def _build_suggestions(
+    fields: dict,
+    conflicts: dict,
+    flags: list[dict],
+    criteria_fields: list[str],
+    verdict: str,
+) -> list[str]:
+    suggestions = []
+    for field in criteria_fields:
+        if fields.get(field) is None:
+            suggestions.append(f"{field}: Not found in document — please re-upload a clearer image")
+    for flag in flags:
+        severity = flag.get("severity")
+        issue = flag.get("issue")
+        if severity == "red" and issue:
+            suggestions.append(f"⚠️ CRITICAL: {issue}")
+        elif severity == "orange" and issue:
+            suggestions.append(f"⚠️ Review needed: {issue}")
+    for field, values in (conflicts or {}).items():
+        suggestions.append(f"📋 Conflict detected in {field}: values differ across documents — {values}")
+    if verdict == GREEN:
+        suggestions.append("✅ Document verified and signed on Tron blockchain")
+    elif verdict == RED:
+        suggestions.append("❌ Verification failed — document cannot be accepted")
+    elif verdict == ORANGE:
+        suggestions.append("🔍 Manual review required before accepting this document")
+    return suggestions
 
 
 def verify_documents(
@@ -21,10 +51,12 @@ def verify_documents(
     if not criteria:
         raise HTTPException(status_code=404, detail="Criteria not found")
 
+    criteria_enroll = read(db, CriteriaEnroll, company_id=company_id, criteria_id=criteria_id)
+    criteria_enroll_id = str(criteria_enroll.id) if criteria_enroll else None
+
     criteria_data: dict = criteria.data
     fields: list[str] = criteria_data.get("fields", [])
     rules: list[dict] = criteria_data.get("rules", [])
-    category: str = criteria_data.get("category", "document")
 
     document = create(db, Document, multipaths=paths)
     enroll = create(
@@ -34,22 +66,32 @@ def verify_documents(
         status=DocumentStatus.pending,
     )
 
-    raw_results = extract_parallel(paths, fields, category)
+    raw_results = extract_parallel(paths, criteria_data)
     merged = merge_extractions(raw_results, fields)
 
     flags = build_flags(merged["fields"], merged["conflicts"], rules)
     risk_score = compute_risk_score(flags)
     verdict = get_verdict(risk_score)
+    suggestions = _build_suggestions(merged["fields"], merged["conflicts"], flags, fields, verdict)
 
-    result = {
+    result: dict = {
         "document_enroll_id": str(enroll.id),
+        "document_id": str(document.id),
+        "criteria_enroll_id": criteria_enroll_id,
+        "criteria": {
+            "id": criteria_id,
+            "name": criteria_data.get("name"),
+            "category": criteria_data.get("category"),
+        },
         "extracted_fields": merged["fields"],
         "conflicts": merged["conflicts"],
         "flags": flags,
+        "suggestions": suggestions,
         "risk_score": risk_score,
         "verdict": verdict,
         "tron_signed": False,
         "txid": None,
+        "to_address": None,
         "hash": None,
         "verify_url": None,
     }
@@ -57,23 +99,38 @@ def verify_documents(
     if verdict == GREEN:
         try:
             hash_value = hash_fields({
-                "flags": flags,
+                "enroll_id": str(enroll.id),
+                "document_id": str(document.id),
                 "criteria_id": criteria_id,
-                "company_id": company_id,
+                "fields": merged["fields"],
             })
-            txid = sign_on_tron(hash_value)
-            create(db, Signature, document_enroll_id=enroll.id, hash=hash_value, txid=txid)
+            tron = sign_on_tron(hash_value)
+
+            # db.txt rule: create Signature FIRST, THEN update status to verified
+            create(
+                db, Signature,
+                document_enroll_id=enroll.id,
+                hash=hash_value,
+                txid=tron["txid"],
+                to_address=tron["to_address"],
+            )
             update(db, enroll, status=DocumentStatus.verified)
+
             result.update({
                 "tron_signed": True,
-                "txid": txid,
+                "txid": tron["txid"],
+                "to_address": tron["to_address"],
                 "hash": hash_value,
-                "verify_url": f"https://nile.tronscan.org/#/transaction/{txid}",
+                "verify_url": f"https://nile.tronscan.org/#/transaction/{tron['txid']}",
             })
         except Exception as e:
             update(db, enroll, status=DocumentStatus.failed)
             result["tron_error"] = str(e)
     elif verdict == RED:
         update(db, enroll, status=DocumentStatus.failed)
+    elif verdict == ORANGE:
+        update(db, enroll, status=DocumentStatus.review)
+
+    update(db, enroll, result=result)
 
     return result

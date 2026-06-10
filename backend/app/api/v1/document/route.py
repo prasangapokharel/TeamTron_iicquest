@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from db.config.env import get_db
 from db.models.company import Company
-from app.helper.deps import get_current_company
+from app.helper.deps import get_current_company, get_company_from_jwt_or_apikey
 from app.api.v1.document import service
 
 router = APIRouter(prefix="/document", tags=["document"])
@@ -21,6 +21,18 @@ class DocumentCreateRequest(BaseModel):
         return v
 
 
+@router.post("/verify", status_code=201)
+def verify_document(
+    criteria_id: str = Form(...),
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    company: Company = Depends(get_company_from_jwt_or_apikey),
+):
+    if not (1 <= len(files) <= 5):
+        raise HTTPException(status_code=422, detail="Provide between 1 and 5 document images")
+    return service.verify_uploaded_documents(db, str(company.id), criteria_id, files)
+
+
 @router.post("", status_code=201)
 def create_document(
     body: DocumentCreateRequest,
@@ -33,6 +45,15 @@ def create_document(
 @router.get("")
 def list_documents(db: Session = Depends(get_db), company: Company = Depends(get_current_company)):
     return service.list_documents(db, str(company.id))
+
+
+@router.get("/{enroll_id}/result")
+def get_result(
+    enroll_id: str,
+    db: Session = Depends(get_db),
+    company: Company = Depends(get_current_company),
+):
+    return service.get_result(db, str(company.id), enroll_id)
 
 
 @router.get("/{enroll_id}")

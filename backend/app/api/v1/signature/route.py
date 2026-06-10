@@ -16,6 +16,14 @@ class SignRequest(BaseModel):
     fields: dict[str, Any]
 
 
+@router.get("")
+def list_signatures(
+    db: Session = Depends(get_db),
+    company: Company = Depends(get_current_company),
+):
+    return service.list_signatures(db, str(company.id))
+
+
 @router.post("", status_code=201)
 def sign_document(
     body: SignRequest,

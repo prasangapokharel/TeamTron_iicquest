@@ -1,0 +1,156 @@
+=== PUBLIC ===
+
+
+/login
+  Page: Login
+  Purpose: Company login with email/password, stores JWT token
+  API: POST /api/v1/auth/login
+  Auth: No
+
+/register
+  Page: Register
+  Purpose: Company registration with name, email, password
+  API: POST /api/v1/auth/register
+  Auth: No
+
+/verify/:txid
+  Page: Public Blockchain Verify
+  Purpose: Anyone can verify a document signature by txid (public share link)
+  API: GET /api/v1/signature/verify/:txid
+  Auth: No
+
+=== AUTH ===
+
+/logout
+  Page: Logout (action, no UI)
+  Purpose: Clear JWT token and redirect to /login
+  API: None (client-side token clear)
+  Auth: Yes (JWT)
+
+=== DASHBOARD ===
+
+/dashboard
+  Page: Main Dashboard
+  Purpose: Overview of all stats — verified/failed/pending docs, spend, API keys, blockchain signatures, recent verifications
+  API: GET /api/v1/company/dashboard
+  Auth: Yes (JWT)
+
+=== DOCUMENT MANAGEMENT ===
+
+/documents
+  Page: Document List
+  Purpose: List all submitted documents with status, verdict, risk score, criteria name, suggestion count
+  API: GET /api/v1/document/list
+  Auth: Yes (JWT)
+
+/documents/upload
+  Page: Upload Document
+  Purpose: Upload one or more document images for verification against a selected criteria
+  API: POST /api/v1/document/verify (multipart/form-data with files + criteria_id)
+  Auth: Yes (JWT)
+
+/documents/:enroll_id
+  Page: Document Detail
+  Purpose: View document metadata, paths, status, verdict, risk score, and blockchain signature
+  API: GET /api/v1/document/:enroll_id
+  Auth: Yes (JWT)
+
+/documents/:enroll_id/result
+  Page: Verification Result
+  Purpose: Full verification result — extracted fields, conflicts, flags, suggestions, verdict, blockchain signature
+  API: GET /api/v1/document/:enroll_id/result
+  Auth: Yes (JWT)
+
+=== VERIFICATION ===
+
+/verify
+  Page: Verify Document (API trigger page)
+  Purpose: Select criteria, upload documents, and trigger verification pipeline
+  API: POST /api/v1/document/verify
+  Auth: Yes (JWT)
+
+/verify/:enroll_id/result
+  Page: Verify Result Detail
+  Purpose: Display detailed AI verification result with field-by-field breakdown, flags, suggestions, and blockchain proof
+  API: GET /api/v1/document/:enroll_id/result
+  Auth: Yes (JWT)
+
+=== CRITERIA ===
+
+/criteria
+  Page: Criteria List
+  Purpose: Browse all available verification criteria (document types)
+  API: GET /api/v1/criteria/list
+  Auth: Yes (JWT)
+
+/criteria/:id
+  Page: Criteria Detail
+  Purpose: View criteria fields, rules, category, and description
+  API: GET /api/v1/criteria/:id
+  Auth: Yes (JWT)
+
+/criteria/enroll
+  Page: Enroll in Criteria
+  Purpose: Enroll company to a criteria so they can verify documents against it
+  API: POST /api/v1/criteria/enroll
+  Auth: Yes (JWT)
+
+/criteria/enrolled
+  Page: Enrolled Criteria
+  Purpose: List all criteria the company is currently enrolled in
+  API: GET /api/v1/criteria/enrolled
+  Auth: Yes (JWT)
+
+=== SETTINGS ===
+
+/settings/profile
+  Page: Company Profile
+  Purpose: View and update company name, email, logo
+  API: GET /api/v1/company/me, POST /api/v1/company/update, POST /api/v1/company/logo
+  Auth: Yes (JWT)
+
+/settings/api-keys
+  Page: API Key Management
+  Purpose: View, create, and revoke API keys for programmatic access
+  API: GET /api/v1/apikey/list, POST /api/v1/apikey/create, DELETE /api/v1/apikey/:id
+  Auth: Yes (JWT)
+
+/settings/payments
+  Page: Payment History
+  Purpose: View payment records and total spend
+  API: GET /api/v1/payment/list
+  Auth: Yes (JWT)
+
+/settings/password
+  Page: Change Password
+  Purpose: Update account password
+  API: POST /api/v1/auth/change-password
+  Auth: Yes (JWT)
+
+=== SIGNATURE / BLOCKCHAIN ===
+
+/signatures
+  Page: Signature List
+  Purpose: View all blockchain signatures issued by the company, with txid, to_address, document status, verify URL
+  API: GET /api/v1/signature/list
+  Auth: Yes (JWT)
+
+/signatures/:enroll_id
+  Page: Signature Detail
+  Purpose: View single signature with full blockchain info — hash, txid, to_address, TronScan link
+  API: GET /api/v1/signature/:enroll_id
+  Auth: Yes (JWT)
+
+=== ASSISTANT ===
+
+/assistant
+  Page: AI Document Assistant
+  Purpose: Chat-based assistant to ask questions about document fields, flags, and verification results
+  API: POST /api/v1/assistant/chat (streaming or standard response)
+  Auth: Yes (JWT)
+
+/assistant/:enroll_id
+  Page: Assistant for Specific Document
+  Purpose: AI assistant pre-loaded with the verification result for a specific document — explains flags, suggestions, fields
+  API: GET /api/v1/document/:enroll_id/result, POST /api/v1/assistant/chat
+  Auth: Yes (JWT)
