@@ -1,0 +1,128 @@
+VIVAD X — JUDGES Q&A
+====================
+
+
+[SECTION 1: PROBLEM & MARKET]
+
+Q: What problem are you solving?
+A: In Nepal, document fraud during loan applications, KYC onboarding, and manpower agency recruitment is rampant and expensive to catch manually. Banks, microfinance institutions, and manpower agencies spend hours cross-checking citizenship certificates, PAN cards, bank statements, and employment contracts — a slow, error-prone, human-bottleneck process with no audit trail. VIVAD X automates this entire pipeline: upload documents, get an AI-extracted structured report, a risk verdict, and an immutable blockchain signature in seconds.
+
+Q: Who is the target customer?
+A: Our primary customers are Nepali financial institutions (banks, cooperatives, microfinance companies) that run KYC workflows, and licensed manpower agencies that must verify worker contracts before foreign deployment. Secondary customers are insurance companies and any regulated entity that handles multi-document onboarding at scale. We sell via B2B API integration — companies plug our verify endpoint directly into their existing onboarding software.
+
+Q: What is the market size in Nepal?
+A: Nepal has 27 commercial banks, 65+ development banks, 200+ finance companies, and over 700 licensed manpower agencies — all of whom process tens of thousands of documents monthly. The annual document processing cost across these institutions is estimated at hundreds of millions of rupees in staff time alone. Even capturing 5% of mid-tier banks and manpower agencies represents a multi-crore ARR opportunity. With digitisation mandates from Nepal Rastra Bank accelerating, the market is actively moving toward automated KYC.
+
+Q: Why does this problem exist today?
+A: Three structural reasons: First, Nepal's document ecosystem is paper-first — citizenship cards, PAN cards, and bank statements are physical documents with inconsistent formatting, handwritten fields, and no central digital registry to cross-check against. Second, existing manual review has no standardisation — a relationship officer at one branch applies different rules than another. Third, there is no tamper-proof audit trail — if a fraudulent document slips through, there is no evidence chain to trace accountability. VIVAD X addresses all three.
+
+Q: What are existing solutions and why are they not enough?
+A: Existing solutions fall into three categories: (1) Manual review — labour-intensive, inconsistent, no audit trail; (2) Generic OCR tools like Adobe Acrobat or Google Vision — these extract text but have no domain-specific verification logic, no cross-document conflict detection, and no blockchain anchoring; (3) Global KYC platforms like Onfido or Jumio — built for Western ID formats (passports, driver's licences), not Nepal's citizenship certificates or manpower contracts, and priced in USD SaaS tiers that are unaffordable for Nepali cooperatives. VIVAD X is purpose-built for Nepal's document types, pricing, and regulatory context.
+
+
+[SECTION 2: PRODUCT & TECHNICAL]
+
+Q: How does the system work end-to-end?
+A: The full pipeline is: (1) A company submits document images (JPEG/PNG) via REST API with a criteria_id; (2) The verify service reads the criteria JSON — which defines fields to extract and validation rules; (3) Images are sent to Groq (Llama 4 Scout) in parallel batches of 2, each receiving a dynamically built extraction prompt; (4) Extracted field dictionaries are merged — first non-null value wins, disagreements become conflicts; (5) Business rules (cross_match, not_expired, min_threshold, date_logic) are applied to generate flags with GREEN/YELLOW/ORANGE/RED severity; (6) Flags are weighted (GREEN=100, YELLOW=75, ORANGE=50, RED=0) and averaged into a risk score; (7) Score ≥ 80 → GREEN verdict → SHA-256 hash of fields is signed on Tron blockchain as a 1-SUN transfer memo to a unique ephemeral address; (8) The full result including txid, to_address, and verify URL is returned and stored.
+
+Q: How does the AI extraction work? What model? Why?
+A: We use Meta's Llama 4 Scout (17B, 16-expert MoE) served via Groq at temperature 0.1, with `response_format: json_object` enforced so the model always returns parseable structured output. The prompt is dynamically assembled from the criteria definition — it lists each field annotated with its worst-case severity marker (🔴 CRITICAL, 🟠 IMPORTANT) and extraction rules specific to that field type (date fields are normalised to YYYY-MM-DD, amount fields strip currency symbols, name fields preserve exact capitalisation). We chose Groq because its LPU inference gives sub-second latency even for multi-image payloads, and Llama 4 Scout's vision capability handles Nepal's mixed Devanagari/English document formats accurately.
+
+Q: What is "vectorless" and why did you choose it over RAG/vector DB?
+A: The assistant module answers company-specific queries (e.g. "How many documents failed this month?", "What was the risk score on my last KYC?") without any vector embeddings or similarity search. Instead, `build_context()` assembles a structured plain-text context block directly from the database — total verified/failed/pending counts, enrolled criteria names, active API keys, last verified document's extracted fields, flags, and blockchain txid — and feeds that as the system context to Groq. We chose this because all relevant data is already relational and structured; vector search adds latency, cost, and infrastructure complexity with zero benefit when the answer is a deterministic database aggregation, not a semantic document retrieval.
+
+Q: How does the Tron blockchain signing work? What is signed? Why Tron?
+A: We compute a SHA-256 hash of a canonical JSON payload containing `{enroll_id, document_id, criteria_id, fields}` — serialised with `sort_keys=True` to ensure deterministic output. This hash is then embedded as the memo field of a 1-SUN TRX transfer from our signing wallet to a unique ephemeral address, broadcast to the Tron Nile testnet via tronpy. The resulting txid and to_address are stored in the `signature` table and returned to the caller with a direct TronScan verify URL. We chose Tron because it has near-zero transaction fees (< $0.001), 3-second finality, a mature Python SDK (tronpy), and a public block explorer (TronScan) that anyone — including regulators — can use to independently verify the hash without any access to our system.
+
+Q: What is the "to_address" per document? Why generate a unique address?
+A: For each verified document, `_generate_address()` creates a fresh ephemeral TRON address by generating a cryptographically random 32-byte private key (`secrets.token_bytes(32)`) and deriving its Base58Check public address. This address is the destination of the 1-SUN transfer that carries the document hash as its memo. The uniqueness of `to_address` serves as a fingerprint: anyone auditing the blockchain can look up that specific address and find exactly one transaction — the one that signed this document. It makes each document's blockchain record globally unique and unambiguous, even if the same fields appear in multiple documents.
+
+Q: What does the risk score mean? How is it calculated?
+A: The risk score is an integer from 0 to 100 representing the weighted average health of all extracted fields. Each flag carries a severity weight: GREEN=100, YELLOW=75, ORANGE=50, RED=0. The score is `round(sum(weights) / count(flags))`. A score ≥ 80 means the document set passes all critical checks and gets a GREEN verdict with blockchain signing. A score between 50–79 triggers an ORANGE verdict (sent for manual review). A score below 50 triggers RED (outright rejection). A document with any expired field or name mismatch across pages will have RED-weighted flags that drag the score below 50, making rejection automatic.
+
+Q: What is the verdict system (Green/Orange/Red)?
+A: GREEN (score ≥ 80): All critical fields validated, no conflicts, no expired dates — system automatically signs the document hash on Tron and updates status to `verified`. ORANGE (50–79): One or more important issues detected (e.g. father name variation, address mismatch, income slightly below threshold) — status set to `review`, flagged for manual human decision. RED (< 50): Critical failure — name mismatch across documents, expired ID, missing PAN number, impossible date logic (payment date after deployment date) — status set to `failed`, no signing occurs. This three-tier system ensures zero false negatives for critical fraud signals.
+
+Q: How is the system dynamic/flexible for different document types?
+A: Every verification run is driven by a `criteria` JSON object stored in the database, not hardcoded logic. A criteria defines `{name, category, fields[], rules[]}` where each rule specifies a `check` type (cross_match, not_expired, min_threshold, date_logic), the target field(s), and severity. The AI extraction prompt is built entirely from this criteria at runtime by `build_extraction_prompt()` — it reads the fields list, maps severity markers, injects type-specific hints (date normalisation, amount stripping), and generates the exact JSON schema the model must return. This means adding support for a new document type (e.g. insurance policy) requires only inserting a new criteria row — no code changes.
+
+Q: What happens if Groq extracts wrong data?
+A: The system has two layers of protection. First, the model is constrained to return only a valid JSON object with exactly the schema defined in the criteria — `response_format: {"type": "json_object"}` and temperature 0.1 minimise hallucination. Second, when multiple document images are processed, `merge_extractions()` performs cross-document conflict detection: if Image 1 says name="Ram Bahadur" and Image 2 says name="Ram Budha", both values are recorded in the `conflicts` dict, and the `cross_match` rule fires a RED or ORANGE flag. The human reviewer sees exactly what each image reported. Extraction errors (`_error` key) are gracefully skipped so one bad image doesn't silently corrupt the merge.
+
+Q: What happens if Tron signing fails?
+A: The signing step is wrapped in a try/except inside `verify_documents()`. If `sign_on_tron()` raises — due to network timeout, insufficient TRX balance, or Tron Grid API error — the document enroll status is set to `failed`, a `tron_error` field is added to the result JSON, and the HTTP response still returns 200 with the full extraction report minus the blockchain fields. Critically, the database write order enforces integrity: the `Signature` row is only created after a successful broadcast, and `DocumentEnroll.status` is only set to `verified` after the Signature is persisted — preventing any orphaned verified record without a corresponding blockchain proof.
+
+Q: How is the system secured?
+A: Five layers: (1) CORS restricted to `ALLOWED_ORIGINS` env var; (2) All document endpoints require either a valid JWT (dashboard users) or a valid API key (integration clients) via dual middleware in `deps.py`; (3) Uploaded files are stored under per-company UUID-namespaced directories, preventing path traversal; (4) Groq and Tron API keys are loaded exclusively from environment variables, never committed to source; (5) The Tron private key is loaded via `PrivateKey(bytes.fromhex(os.getenv("TRON_PRIVATE_KEY")))` — never stored in the database or logs. File size and type validation happen at the upload layer before any AI call is made.
+
+Q: How does the dual auth work (JWT + API key)?
+A: The `deps.py` helper exposes a dependency that checks two token sources in order: if an `Authorization: Bearer <token>` header is present, it validates the JWT and resolves the company_id from the token payload; if instead an `X-API-Key` header is present, it looks up the key in the `apikey` table (status must be `active`) and resolves the company_id that way. Companies manage their API keys through the dashboard (create, revoke) and use them for machine-to-machine integration without needing to handle JWT refresh cycles. Both paths resolve to the same `company_id` context, so downstream services are auth-method agnostic.
+
+Q: How does the assistant work? Why no vectors?
+A: The assistant endpoint accepts a natural language query from a company user. The `build_context()` function queries the database for that company's document statistics, enrolled criteria, payment history, active API key count, and the full detail of their last verified document (including extracted fields, flags, and blockchain txid). This is serialised into a structured plain-text block and prepended as system context to the Groq chat completion. Because all the data is already structured and company-scoped, a vector similarity search would add latency and infrastructure cost with no benefit — the context is always fresh from the DB, not from a pre-indexed corpus.
+
+
+[SECTION 3: BLOCKCHAIN & SECURITY]
+
+Q: Why blockchain for document verification?
+A: The core problem with traditional document verification is that the verifier controls the audit trail — a company's own database can be modified after the fact. By anchoring the SHA-256 hash of extracted fields as a memo on the Tron blockchain, the proof becomes immutable and publicly verifiable by any third party without trusting VIVAD X. A bank, regulator, or counterparty can independently visit TronScan with just the txid and confirm: "on this date, at this time, these fields had this exact hash" — without revealing the underlying data.
+
+Q: Can the document hash be tampered with after signing?
+A: No. The hash is embedded in a confirmed Tron transaction's `raw_data.data` field — a blockchain transaction is cryptographically sealed by the signing wallet's private key and propagated to all Tron network nodes. Even VIVAD X cannot modify it post-broadcast. The only theoretical attack would be pre-image collision on SHA-256, which is computationally infeasible. The hash payload itself includes `enroll_id`, `document_id`, `criteria_id`, and the full `fields` dict — making every hash unique even for identical documents submitted under different enrollments.
+
+Q: How do you verify a document is authentic using the txid?
+A: Three-step verification: (1) Call `GET /api/v1/signature/{txid}` — our `get_transaction()` function fetches the transaction from Tron Grid, decodes the hex memo field to get the stored hash; (2) Recompute the SHA-256 hash of the claimed fields using the same canonical serialisation (`json.dumps(sort_keys=True)`); (3) Compare the two hashes — if they match, the document fields are provably unchanged since signing. The verifier can also independently check TronScan at `https://nile.tronscan.org/#/transaction/{txid}` to confirm the transaction exists, its timestamp, and the from/to addresses.
+
+Q: What is the Tron Nile testnet? Is it production-ready?
+A: Nile is Tron's official public testnet, which mirrors mainnet's API, block structure, and explorer tooling exactly — our tronpy client simply points to `https://nile.trongrid.io` instead of mainnet. The current build uses Nile for demo/hackathon purposes. Migrating to Tron mainnet is a single environment variable change (`TRON_GRID_API`), a funded mainnet wallet, and a new `TRON_PRIVATE_KEY`. Transaction costs on mainnet for 1-SUN transfers are effectively free (bandwidth cost only). The architecture, code, and data model are identical; Nile is our staging environment.
+
+Q: How is the private key secured?
+A: The Tron private key is loaded at runtime exclusively via `os.getenv("TRON_PRIVATE_KEY")` and immediately converted to a `PrivateKey` object — the raw hex string is never stored, logged, or passed to any function. The `_priv_key()` function is decorated with `@lru_cache(maxsize=1)` to avoid re-parsing on every call without exposing the key in memory repeatedly. In production, this env var would be injected via a secrets manager (AWS Secrets Manager, HashiCorp Vault) rather than a `.env` file. The signing wallet holds only the minimum TRX needed for transaction fees — not a treasury wallet.
+
+Q: Could someone fake a verification?
+A: Not without either (a) compromising the Tron signing wallet's private key, or (b) breaking SHA-256. A fraudster cannot retroactively create a valid blockchain transaction with a fabricated hash — they would need our private key to sign and broadcast it. They cannot forge a matching hash for tampered fields without a SHA-256 preimage attack. They cannot replay an existing txid for different fields — the hash comparison step in verification would fail. The unique `to_address` per document also means no two documents share the same blockchain footprint, preventing txid reuse attacks.
+
+
+[SECTION 4: BUSINESS MODEL]
+
+Q: How do you make money?
+A: VIVAD X uses a per-verification pricing model: Rs 100 per document set processed, reflected in the `plan` table as `Peruser: int(Rs 100)`. Payments are tracked in the `payment` table with a unique 8-character transaction ID, amount, and date. There is no monthly seat fee — companies pay only for what they verify, making the economics transparent and aligned with their own transaction volume. We also plan a tiered API rate-limit structure where higher-volume contracts get bulk discounts.
+
+Q: What is the pricing model?
+A: Rs 100 per document verification run is the base unit. A document run can include multiple images (e.g. front and back of a citizenship card, plus a bank statement) which are all processed as a single billable event. For a bank processing 500 loan applications per month, the cost is Rs 50,000 — a fraction of the staff time currently spent on manual review. There is no setup fee, no per-seat licence, and no vendor lock-in — companies integrate via API and can cancel anytime. Volume pricing and institutional contracts will be available for enterprise customers.
+
+Q: Who are your first customers?
+A: Our pilot targets are: (1) Small-to-mid tier cooperatives and microfinance institutions that process 200–2,000 KYC documents per month but lack the IT budget for custom solutions; (2) Licensed manpower agencies in Kathmandu that must verify worker documents before foreign deployment — a legally mandated process with heavy fraud risk; (3) Fintech startups building digital lending apps in Nepal who need a verification API rather than building their own. These segments have the highest document fraud pain, lowest existing tooling, and fastest decision cycles.
+
+Q: What is your go-to-market strategy?
+A: Three channels: (1) Direct API sales — target tech-forward cooperatives and fintechs through developer outreach, offering a free 50-verification trial with a single API key; (2) Regulatory alignment — position as a tool that helps institutions meet Nepal Rastra Bank's KYC compliance requirements, reducing audit risk; (3) Manpower agency associations — partner with the Department of Foreign Employment and licensed agency networks to offer VIVAD X as a preferred verification tool for pre-departure document checks. We prioritise API-first adoption to create switching costs through integration depth.
+
+
+[SECTION 5: SCALABILITY & FUTURE]
+
+Q: How does this scale to 1000 companies?
+A: The architecture is stateless and horizontally scalable. The FastAPI application has no in-process state — it uses `lru_cache` for the Groq and Tron clients (connection reuse) but all data lives in Postgres (via Supabase). Verification calls are the most expensive operation: Groq extraction runs in a `ThreadPoolExecutor(max_workers=2)` per request, which can be scaled by increasing `MAX_PARALLEL` or moving to a distributed task queue (Celery + Redis). The database schema is already company-scoped by `company_id` on every relevant table. Supabase's Postgres handles multi-tenant isolation at the row level without schema separation.
+
+Q: What are the limitations of the current system?
+A: Three honest limitations: (1) Groq Llama 4 Scout has an accuracy ceiling on heavily degraded scans, handwritten Devanagari text, or very low-resolution images — pre-processing with image enhancement would improve this; (2) We currently process a maximum of 2 images in parallel (`MAX_PARALLEL=2`) — for large document sets this would need to increase or move to async task queues; (3) The Tron Nile testnet is not production — moving to mainnet requires a funded wallet and proper key management infrastructure. None of these are architectural blockers; all are configuration and infrastructure changes.
+
+Q: What is the roadmap?
+A: Phase 1 (current): Core verify pipeline, blockchain signing, assistant, API key management, payment tracking. Phase 2: Photo match verification (face comparison between citizenship photo and live capture using a vision model), PDF support with page-level extraction, webhook callbacks for async verification results. Phase 3: Cross-company document registry — a company can query whether a citizenship number has been verified by another institution (with consent), reducing duplicate KYC costs across the sector. Phase 4: Mainnet Tron deployment, SOC 2 Type II audit, Nepal Rastra Bank sandbox certification.
+
+Q: How would you handle multi-document cross-verification?
+A: This is already partially implemented. When multiple image paths are submitted in a single verify call, `extract_parallel()` processes all images and `merge_extractions()` compares field values across them — conflicts are detected when the same field has different values in different images. The `cross_match` rule type in criteria then elevates any conflicting field to RED or ORANGE severity. For true cross-case verification (e.g. checking if this citizenship number was used in a fraudulent application last month by another company), the Phase 3 registry would expose a consent-gated lookup API.
+
+Q: Can this work for non-Nepal documents?
+A: Yes, by design. The system is criteria-driven — the extraction prompt and validation rules are entirely defined by the criteria JSON, with no hardcoded Nepal-specific logic in the core engine. `build_extraction_prompt()` generates prompts for any document type in any country. The only Nepal-specific elements are the example criteria data (citizenship card, PAN card, manpower contract) and the currency stripping logic for "Rs/NPR" in amount fields — both are trivially extensible. Deploying for Bangladesh, Sri Lanka, or any other market requires only new criteria definitions and a market-specific go-to-market motion.
+
+
+[SECTION 6: COMPETITION & DIFFERENTIATION]
+
+Q: Who are your competitors?
+A: Global: Onfido, Jumio, Trulioo — enterprise KYC platforms designed for Western passports and driver's licences, priced in USD SaaS tiers ($5–$15 per verification), and without Nepal document support. Regional: No known Nepal-specific automated document verification SaaS exists at the time of this submission. Indirect: Manual processes and ad-hoc OCR scripts built internally by larger banks. Our competition is primarily the status quo — staff with physical documents and spreadsheets.
+
+Q: What makes VIVAD X unique?
+A: Four differentiated pillars: (1) Nepal-first document understanding — our prompts and criteria are designed around citizenship certificates, PAN cards, manpower contracts, and bank statements as issued in Nepal; (2) Criteria-driven flexibility — adding a new document type requires no code, only a new criteria JSON row; (3) Immutable blockchain audit trail — a txid on Tron that any regulator can independently verify without trusting our platform; (4) Accessible pricing — Rs 100 per verification versus $5–15 USD for global alternatives makes us 50–100x cheaper for the Nepali market.
+
+Q: Why would a bank choose VIVAD X over manual verification?
+A: Three hard business reasons: (1) Speed — manual KYC takes 2–5 business days; VIVAD X returns a verdict in under 10 seconds, enabling same-day loan decisions; (2) Consistency — every document is checked against the same criteria rules every time, eliminating branch-to-branch variability and officer bias; (3) Liability and audit — every GREEN verdict comes with a blockchain txid that proves the document was verified at a specific time with specific extracted data, providing legal cover in case of disputed fraud — something a manual process can never provide.

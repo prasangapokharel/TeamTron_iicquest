@@ -1,0 +1,493 @@
+{
+  "info": {
+    "_postman_id": "vivad-x-api-v1",
+    "name": "VIVAD X API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "company_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"company_id\", pm.response.json().company_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/auth/register", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"company_name\": \"Acme Corp\",\n  \"email\": \"acme@example.com\",\n  \"password\": \"secret123\",\n  \"logo\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"token\", pm.response.json().access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/auth/login", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"email\": \"acme@example.com\",\n  \"password\": \"secret123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Company",
+      "item": [
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/company/me", "host": ["{{base_url}}"], "path": ["api", "v1", "company", "me"] }
+          }
+        },
+        {
+          "name": "Update Me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/company/me", "host": ["{{base_url}}"], "path": ["api", "v1", "company", "me"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"company_name\": \"Acme Corp Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/company/dashboard", "host": ["{{base_url}}"], "path": ["api", "v1", "company", "dashboard"] }
+          }
+        },
+        {
+          "name": "Upload Logo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/company/logo", "host": ["{{base_url}}"], "path": ["api", "v1", "company", "logo"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "/path/to/logo.png", "description": "Company logo (jpg/png, max 5MB)" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Keys",
+      "item": [
+        {
+          "name": "Generate Key",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/apikey", "host": ["{{base_url}}"], "path": ["api", "v1", "apikey"] }
+          }
+        },
+        {
+          "name": "List Keys",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/apikey", "host": ["{{base_url}}"], "path": ["api", "v1", "apikey"] }
+          }
+        },
+        {
+          "name": "Revoke Key",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/apikey/:apikey_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "apikey", ":apikey_id"],
+              "variable": [{ "key": "apikey_id", "value": "replace-with-apikey-id" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/category", "host": ["{{base_url}}"], "path": ["api", "v1", "category"] }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/category", "host": ["{{base_url}}"], "path": ["api", "v1", "category"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"name\": \"Identity Documents\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Enroll Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/category/enroll", "host": ["{{base_url}}"], "path": ["api", "v1", "category", "enroll"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"category_id\": \"replace-with-category-id\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Enrolled",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/category/enrolled", "host": ["{{base_url}}"], "path": ["api", "v1", "category", "enrolled"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Criteria",
+      "item": [
+        {
+          "name": "List Criteria",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/criteria", "host": ["{{base_url}}"], "path": ["api", "v1", "criteria"] }
+          }
+        },
+        {
+          "name": "Create Criteria",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/criteria", "host": ["{{base_url}}"], "path": ["api", "v1", "criteria"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"data\": {\n    \"name\": \"Passport KYC\",\n    \"category\": \"Identity\",\n    \"fields\": [\"full_name\", \"dob\", \"passport_number\", \"expiry_date\"],\n    \"rules\": [\n      { \"field\": \"full_name\", \"match\": \"cross_doc\", \"severity\": \"high\" },\n      { \"field\": \"dob\", \"match\": \"cross_doc\", \"severity\": \"high\" }\n    ]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Enroll Criteria",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/criteria/enroll", "host": ["{{base_url}}"], "path": ["api", "v1", "criteria", "enroll"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"criteria_id\": \"replace-with-criteria-id\",\n  \"severity\": \"high\",\n  \"message\": \"Critical KYC check\",\n  \"is_critical\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Enrolled",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/criteria/enrolled", "host": ["{{base_url}}"], "path": ["api", "v1", "criteria", "enrolled"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Document",
+      "item": [
+        {
+          "name": "Create Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/document", "host": ["{{base_url}}"], "path": ["api", "v1", "document"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"paths\": [\n    \"uploads/company-id/file1.jpg\",\n    \"uploads/company-id/file2.jpg\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "List Documents",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/document", "host": ["{{base_url}}"], "path": ["api", "v1", "document"] }
+          }
+        },
+        {
+          "name": "Get Document",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/document/:enroll_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "document", ":enroll_id"],
+              "variable": [{ "key": "enroll_id", "value": "replace-with-enroll-id" }]
+            }
+          }
+        },
+        {
+          "name": "Get Result",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/document/:enroll_id/result",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "document", ":enroll_id", "result"],
+              "variable": [{ "key": "enroll_id", "value": "replace-with-enroll-id" }]
+            }
+          }
+        },
+        {
+          "name": "Verify (Upload)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/document/verify", "host": ["{{base_url}}"], "path": ["api", "v1", "document", "verify"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "criteria_id", "value": "replace-with-criteria-id", "type": "text" },
+                { "key": "files", "type": "file", "src": "/path/to/doc1.jpg" },
+                { "key": "files", "type": "file", "src": "/path/to/doc2.jpg" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Signature",
+      "item": [
+        {
+          "name": "List Signatures",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/signature", "host": ["{{base_url}}"], "path": ["api", "v1", "signature"] }
+          }
+        },
+        {
+          "name": "Get Signature",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/signature/:document_enroll_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "signature", ":document_enroll_id"],
+              "variable": [{ "key": "document_enroll_id", "value": "replace-with-enroll-id" }]
+            }
+          }
+        },
+        {
+          "name": "Verify TXID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/signature/verify/:txid",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "signature", "verify", ":txid"],
+              "variable": [{ "key": "txid", "value": "replace-with-txid" }]
+            }
+          }
+        },
+        {
+          "name": "Sign Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/signature", "host": ["{{base_url}}"], "path": ["api", "v1", "signature"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"document_enroll_id\": \"replace-with-enroll-id\",\n  \"fields\": {\n    \"full_name\": \"John Doe\",\n    \"dob\": \"1990-01-01\",\n    \"passport_number\": \"A1234567\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Plan",
+      "item": [
+        {
+          "name": "List Plans",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/plan", "host": ["{{base_url}}"], "path": ["api", "v1", "plan"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/payment", "host": ["{{base_url}}"], "path": ["api", "v1", "payment"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"plan_id\": \"replace-with-plan-id\",\n  \"amount\": 999\n}"
+            }
+          }
+        },
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/payment", "host": ["{{base_url}}"], "path": ["api", "v1", "payment"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify",
+      "item": [
+        {
+          "name": "Verify (JSON paths)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Use JWT or omit if using X-API-Key" },
+              { "key": "X-API-Key", "value": "replace-with-api-key", "disabled": true, "description": "Alternative to Bearer token" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/verify", "host": ["{{base_url}}"], "path": ["api", "v1", "verify"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"paths\": [\n    \"uploads/company-id/doc1.jpg\",\n    \"uploads/company-id/doc2.jpg\"\n  ],\n  \"criteria_id\": \"replace-with-criteria-id\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Use JWT or omit if using X-API-Key" },
+              { "key": "X-API-Key", "value": "replace-with-api-key", "disabled": true, "description": "Alternative to Bearer token" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/verify/upload", "host": ["{{base_url}}"], "path": ["api", "v1", "verify", "upload"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "criteria_id", "value": "replace-with-criteria-id", "type": "text" },
+                { "key": "files", "type": "file", "src": "/path/to/doc1.jpg" },
+                { "key": "files", "type": "file", "src": "/path/to/doc2.jpg" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assistant",
+      "item": [
+        {
+          "name": "Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Use JWT or omit if using X-API-Key" },
+              { "key": "X-API-Key", "value": "replace-with-api-key", "disabled": true, "description": "Alternative to Bearer token" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/assistant/chat", "host": ["{{base_url}}"], "path": ["api", "v1", "assistant", "chat"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"message\": \"How many documents have been verified this month?\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

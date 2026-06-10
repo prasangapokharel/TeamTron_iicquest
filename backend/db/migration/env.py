@@ -11,12 +11,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-_password = os.getenv("SUPABASE_PASSWORD")
-_host = "db.owsoropgwbhirosppyro.supabase.co"
-config.set_main_option(
-    "sqlalchemy.url",
-    f"postgresql://postgres:{_password}@{_host}:5432/postgres"
+_db_url = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("SUPABASE_DIRECT_CONNECT_URL")
+    or f"postgresql://postgres:{os.getenv('SUPABASE_PASSWORD')}@db.owsoropgwbhirosppyro.supabase.co:5432/postgres"
 )
+config.set_main_option("sqlalchemy.url", _db_url)
 
 from db.config.base import Base
 import db.models

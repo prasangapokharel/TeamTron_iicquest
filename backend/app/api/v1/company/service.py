@@ -1,3 +1,7 @@
+import os
+import uuid
+
+from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -10,14 +14,45 @@ from db.models.apikey import ApiKey, ApiKeyStatus
 from db.models.criteria_enroll import CriteriaEnroll
 
 
+LOGO_DIR = "bucket/logo"
+ALLOWED_EXTS = {".jpg", ".jpeg", ".png"}
+MAX_LOGO_SIZE = 5 * 1024 * 1024
+
+
+def _resolve_logo(logo: str | None) -> str:
+    placeholder = "bucket/logo/placeholder.png"
+    if not logo:
+        return placeholder
+    if not os.path.exists(logo):
+        return placeholder
+    return logo
+
+
 def get_company(company: Company) -> dict:
     return {
         "id": str(company.id),
         "company_name": company.company_name,
         "email": company.email,
-        "logo": company.logo,
+        "logo": "/" + _resolve_logo(company.logo).replace("\\", "/"),
         "status": company.status,
     }
+
+
+def upload_logo(db: Session, company: Company, file: UploadFile) -> dict:
+    ext = os.path.splitext(file.filename or "logo.png")[1].lower()
+    if ext not in ALLOWED_EXTS:
+        raise HTTPException(status_code=422, detail="Only jpg/png allowed")
+    content = file.file.read()
+    if len(content) > MAX_LOGO_SIZE:
+        raise HTTPException(status_code=413, detail="Logo too large (max 5MB)")
+    dest_dir = os.path.join(LOGO_DIR, str(company.id))
+    os.makedirs(dest_dir, exist_ok=True)
+    filename = f"{uuid.uuid4()}{ext}"
+    path = os.path.join(dest_dir, filename)
+    with open(path, "wb") as f:
+        f.write(content)
+    updated = update(db, company, logo=path)
+    return get_company(updated)
 
 
 def update_company(db: Session, company: Company, data: dict) -> dict:
@@ -73,10 +108,20 @@ def get_dashboard(db: Session, company: Company) -> dict:
         .limit(5)
         .all()
     )
-    recent = [
-        {"enroll_id": str(e.id), "status": e.status, "document_id": str(e.document_id)}
-        for e in recent_enrollments
-    ]
+    recent = []
+    for e in recent_enrollments:
+        sig = db.query(Signature).filter_by(document_enroll_id=e.id).first()
+        result_data = e.result or {}
+        recent.append({
+            "enroll_id": str(e.id),
+            "status": e.status,
+            "document_id": str(e.document_id),
+            "verdict": result_data.get("verdict"),
+            "risk_score": result_data.get("risk_score"),
+            "criteria_name": result_data.get("criteria", {}).get("name"),
+            "to_address": sig.to_address if sig else None,
+            "verify_url": f"https://nile.tronscan.org/#/transaction/{sig.txid}" if sig else None,
+        })
 
     return {
         "company": get_company(company),

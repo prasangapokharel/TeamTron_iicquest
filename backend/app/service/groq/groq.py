@@ -2,7 +2,6 @@ import os
 import base64
 import json
 import concurrent.futures
-from functools import lru_cache
 from typing import Any
 from dotenv import load_dotenv
 
@@ -11,11 +10,44 @@ load_dotenv()
 MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 MAX_PARALLEL = 2
 
+_API_KEY_ENV_VARS = [
+    "GROQ_API_KEY",
+    "GROQ_API_KEY2",
+    "GROQ_API_KEY3",
+    "GROQ_API_KEY4",
+    "GROQ_API_KEY5",
+]
 
-@lru_cache(maxsize=1)
-def _client():
+
+def _call_with_fallback(messages: list[dict], **kwargs) -> Any:
+    """
+    Try each GROQ_API_KEY in order. Falls back to the next key on any
+    RateLimitError, AuthenticationError, or credit exhaustion (status 429/402).
+    Raises the last exception if all keys fail.
+    """
     from groq import Groq
-    return Groq(api_key=os.getenv("GROQ_API_KEY"))
+    from groq import RateLimitError, AuthenticationError
+
+    last_exc: Exception | None = None
+    for env_var in _API_KEY_ENV_VARS:
+        key = os.getenv(env_var)
+        if not key:
+            continue
+        try:
+            client = Groq(api_key=key)
+            return client.chat.completions.create(messages=messages, **kwargs)
+        except (RateLimitError, AuthenticationError) as e:
+            last_exc = e
+            continue
+        except Exception as e:
+            # Catch HTTP 402 / credit exhaustion by status code if raised as generic error
+            msg = str(e).lower()
+            if any(code in msg for code in ("402", "429", "rate_limit", "exceeded", "credit", "quota")):
+                last_exc = e
+                continue
+            raise
+
+    raise last_exc or RuntimeError("No GROQ API keys configured")
 
 
 def _encode_image(path: str) -> str:
@@ -31,12 +63,11 @@ def _image_content(path: str) -> dict:
     return {"url": f"data:{mime};base64,{_encode_image(path)}"}
 
 
-def _extract_single(path: str, fields: list[str], category: str) -> dict[str, Any]:
+def _extract_single(path: str, criteria_data: dict) -> dict[str, Any]:
     from app.core.prompts.base import build_extraction_prompt
-    prompt = build_extraction_prompt(fields, category)
+    prompt = build_extraction_prompt(criteria_data)
     try:
-        completion = _client().chat.completions.create(
-            model=MODEL,
+        completion = _call_with_fallback(
             messages=[
                 {
                     "role": "user",
@@ -46,6 +77,7 @@ def _extract_single(path: str, fields: list[str], category: str) -> dict[str, An
                     ],
                 }
             ],
+            model=MODEL,
             temperature=0.1,
             max_completion_tokens=1024,
             response_format={"type": "json_object"},
@@ -56,11 +88,11 @@ def _extract_single(path: str, fields: list[str], category: str) -> dict[str, An
         return {"_error": str(e), "_path": path}
 
 
-def extract_parallel(paths: list[str], fields: list[str], category: str) -> list[dict]:
+def extract_parallel(paths: list[str], criteria_data: dict) -> list[dict]:
     """Process images in parallel (MAX_PARALLEL=2 at a time per flow spec)."""
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_PARALLEL) as executor:
-        futures = {executor.submit(_extract_single, p, fields, category): p for p in paths}
+        futures = {executor.submit(_extract_single, p, criteria_data): p for p in paths}
         for future in concurrent.futures.as_completed(futures):
             results.append({"path": futures[future], "extracted": future.result()})
     return results

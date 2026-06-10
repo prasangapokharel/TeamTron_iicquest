@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -23,6 +23,15 @@ def get_me(company: Company = Depends(get_current_company)):
 @router.get("/dashboard")
 def dashboard(db: Session = Depends(get_db), company: Company = Depends(get_current_company)):
     return service.get_dashboard(db, company)
+
+
+@router.post("/logo", status_code=200)
+def upload_logo(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    company: Company = Depends(get_current_company),
+):
+    return service.upload_logo(db, company, file)
 
 
 @router.patch("/me")

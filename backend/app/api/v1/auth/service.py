@@ -26,6 +26,8 @@ def _verify_password(password: str, stored: str) -> bool:
 
 
 def register(db: Session, company_name: str, email: str, password: str, logo: str | None) -> dict:
+    if len(password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
     if read(db, Company, email=email):
         raise HTTPException(status_code=409, detail="Email already registered")
     company = create(db, Company, company_name=company_name, email=email, logo=logo)

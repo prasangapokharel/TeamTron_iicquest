@@ -5,9 +5,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_password = os.getenv("SUPABASE_PASSWORD")
-_host = "db.owsoropgwbhirosppyro.supabase.co"
-DATABASE_URL = f"postgresql://postgres:{_password}@{_host}:5432/postgres"
+DATABASE_URL = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("SUPABASE_DIRECT_CONNECT_URL")
+    or f"postgresql://postgres:{os.getenv('SUPABASE_PASSWORD')}@db.owsoropgwbhirosppyro.supabase.co:5432/postgres"
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
