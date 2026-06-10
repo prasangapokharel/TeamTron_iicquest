@@ -5,6 +5,7 @@ from app.helper.crude import create, read, update
 from app.service.tron.tron import hash_fields, sign_on_tron
 from app.service.groq.groq import extract_parallel, merge_extractions
 from app.utils.severity import build_flags, compute_risk_score, get_verdict, GREEN, RED, ORANGE
+from db.models.balance import Balance
 from db.models.criteria import Criteria
 from db.models.criteria_enroll import CriteriaEnroll
 from db.models.document import Document
@@ -47,6 +48,10 @@ def verify_documents(
     criteria_id: str,
     paths: list[str],
 ) -> dict:
+    balance_row = read(db, Balance, company_id=company_id)
+    if not balance_row or balance_row.balance < 1:
+        raise HTTPException(status_code=402, detail="Insufficient balance")
+
     criteria = read(db, Criteria, id=criteria_id)
     if not criteria:
         raise HTTPException(status_code=404, detail="Criteria not found")
@@ -132,5 +137,6 @@ def verify_documents(
         update(db, enroll, status=DocumentStatus.review)
 
     update(db, enroll, result=result)
+    update(db, balance_row, balance=balance_row.balance - 1)
 
     return result

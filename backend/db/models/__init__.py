@@ -10,3 +10,4 @@ from db.models.signature import Signature
 from db.models.apikey import ApiKey
 from db.models.plan import Plan
 from db.models.payment import Payment
+from db.models.balance import Balance
