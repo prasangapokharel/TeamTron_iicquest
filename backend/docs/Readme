@@ -1,0 +1,87 @@
+Our Idea (What is VIVAD X?)
+
+Smart Document Reconciliation & Verification System
+Rebuilds old manual document checking process used by banks, manpower agencies, consultancies, etc.
+Upload multiple documents → AI scans & flags Red / Orange / Green → Verified fields signed on Tron Blockchain → Saved in company register
+
+Main User Flow (Step by Step)
+
+Signup
+Company registers with: Company Name, Category (Bank / Manpower Agency / Consultancy / Insurance / Others), Email & Password
+Data saved in PostgreSQL
+
+Login
+Company staff logs in to access their private dashboard
+Simple email + password authentication
+
+Playground / Verification Page
+User selects or inputs Criteria (rules to check)
+Upload 2–5 documents ( images and in futute pdf)
+Click “Analyze”
+
+AI Analysis & Results
+System extracts important fields dynamically from documents
+Shows color-coded results:
+🔴 Red → Critical issues / Fraud risk
+🟠 Orange → Warnings
+🟢 Green → Verified correctly
+
+Displays overall Risk Score (0–100)
+
+Blockchain Signing
+If mostly Green → System automatically hashes verified fields
+Signs them on Tron Network (immutable proof)
+Generates QR code for public verification
+
+Verification Register
+All successful verifications saved in company’s secure dashboard
+Searchable history of all past checks
+
+API Access (For Banks & Big Companies)
+Banks can integrate via API (/api/v1/verify)
+Send documents → Receive JSON with flags, score, and Tron hash
+
+
+Criteria / Rules (Dynamic)
+
+User can choose category (Bank KYC, Manpower, etc.) → System loads relevant rules
+Or manually select fields to check (Name, Citizenship No., Amount, Expiry Date, License No., etc.)
+Rules are dynamic and easy to extend
+
+Problems This System Solves
+
+Manual document checking takes too much time (30 min – 3 hours per case)
+High human error and fraud risk
+No proper audit trail (hard to prove verification later)
+36,000+ pending DOFE cases and heavy workload on banks
+Scattered documents with no reconciliation
+
+Advantages of VIVAD X
+
+Very fast — results in seconds instead of hours
+Clear Red/Orange/Green visual flags (easy to understand)
+Blockchain proof (Tron) → trusted by regulators and auditors
+Works for all industries (Banks, Agencies, Consultancies, etc.)
+Saves 50–70% staff cost
+Dynamic rules → easy to customize
+Privacy friendly (raw documents not stored permanently)
+Good for both small companies (dashboard) and big banks (API)
+
+
+Database schema:
+
+comapany: id, comapanyName, email,logo status(active,inactive)
+auth: company_id, password
+category: id,Name
+category_enroll: comapany_id,category_id
+critaria: id, json(unique)
+critaria_enroll:company_id,critaria_id
+document_enroll: company_id, document_id , status(pending,failed,verified)
+document: id, multipaths(in same row mutiple document)
+signature: document_enroll_id, hash, txid
+apikey:company_id, apikey , status(active, revoke)
+plan: Peruser(int(Rs 100))
+payment: comapany_id,plan_id,transaction_id(8combination),amount , date 
+
+
+Note: Do not store the document to the sysmte get ti? just a path only so more secure and

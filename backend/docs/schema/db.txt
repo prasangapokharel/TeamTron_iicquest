@@ -1,0 +1,17 @@
+
+
+comapany: id, comapanyName, email,logo status(active,inactive)
+auth: company_id, password
+category: id,Name
+category_enroll: comapany_id,category_id
+critaria: id, json(unique)
+critaria_enroll:company_id,critaria_id
+document_enroll: company_id, document_id , status(pending,failed,verified)
+document: id, multipaths(in same row mutiple document)
+signature: document_enroll_id, hash, txid
+apikey:company_id, apikey , status(active, revoke)
+plan: Peruser(int(Rs 100))
+payment: comapany_id,plan_id,transaction_id(8combination),amount , date 
+
+see if the document is verified then after signaturethe see the `document_enroll` at statsu update to verified
+-See alredy a clean and ensure
