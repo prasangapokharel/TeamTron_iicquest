@@ -13,6 +13,9 @@ import type {
   DocumentListItem,
   LoginResponse,
   Payment,
+  PaymentMethod,
+  EsewaInitResponse,
+  WalletTransaction,
   Plan,
   RegisterResponse,
   SignatureItem,
@@ -167,10 +170,23 @@ export const planApi = {
   list: () => request<Plan[]>("/plan"),
 };
 
+export const paymentMethodApi = {
+  list: () => request<PaymentMethod[]>("/payment_method", {}, false),
+};
+
 export const paymentApi = {
   list: () => request<Payment[]>("/payment"),
   create: (plan_id: string, amount: number) =>
     request<Payment>("/payment", { method: "POST", body: JSON.stringify({ plan_id, amount }) }),
+  initializeEsewa: (amount: number) =>
+    request<EsewaInitResponse>("/payment/initialize", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+};
+
+export const transactionApi = {
+  list: () => request<WalletTransaction[]>("/transaction"),
 };
 
 // ─── Assistant ──────────────────────────────────────────────────────────────

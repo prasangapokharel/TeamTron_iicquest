@@ -2,40 +2,78 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, CreditCard, FileCheck, Zap } from "lucide-react";
+import { ArrowUpRight, CreditCard, FileCheck, Loader2, Zap } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { balanceApi } from "@/lib/api";
+import { balanceApi, paymentApi, paymentMethodApi } from "@/lib/api";
+import { formatPaymentMethod, redirectToEsewa } from "@/lib/esewa";
+import type { PaymentMethod } from "@/types/api";
 
 const PRESETS = [50, 100, 250, 500];
 
 export default function BalancePage() {
   const [balance, setBalance] = useState(0);
   const [amount, setAmount] = useState(100);
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+
+  const hasEsewa = methods.some((m) => m.name.toLowerCase() === "esewa");
 
   const load = () => balanceApi.get().then((b) => setBalance(b.balance));
 
   useEffect(() => {
     load();
+    paymentMethodApi.list().then(setMethods).catch(() => setMethods([]));
   }, []);
 
-  const topup = async () => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");
+    if (!payment) return;
+
+    if (payment === "success") {
+      const paid = params.get("amount");
+      const newBal = params.get("balance");
+      setMsg(
+        paid && newBal
+          ? `Payment done. Rs ${paid} added. Your balance is now ${newBal} credits.`
+          : "Payment successful. Credits added to your account.",
+      );
+      load();
+    } else if (payment === "failed") {
+      const reason = params.get("reason") ?? "";
+      const friendly: Record<string, string> = {
+        cancelled: "Payment was cancelled on eSewa.",
+        "Payment not completed": "eSewa did not mark the payment as complete.",
+        verification_error: "We could not confirm the payment. If credits did not update, open Payment history or contact support.",
+      };
+      setError(
+        friendly[reason] ??
+          (reason.includes("status API")
+            ? "Could not reach eSewa to confirm payment. Check your internet and try again."
+            : reason
+              ? `Payment could not be completed: ${reason}`
+              : "Payment failed. Try again or check Payment history."),
+      );
+    }
+
+    window.history.replaceState({}, "", "/settings/balance");
+  }, []);
+
+  const payWithEsewa = async () => {
     if (amount < 1) {
-      setError("Enter at least 1 credit.");
+      setError("Enter at least Rs 1.");
       return;
     }
     setLoading(true);
     setError("");
     setMsg("");
     try {
-      const b = await balanceApi.topup(amount);
-      setBalance(b.balance);
-      setMsg(`Added ${amount} credits. New balance: ${b.balance}.`);
+      const init = await paymentApi.initializeEsewa(amount);
+      redirectToEsewa(init);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Top-up failed");
-    } finally {
+      setError(e instanceof Error ? e.message : "Could not start eSewa payment");
       setLoading(false);
     }
   };
@@ -75,21 +113,28 @@ export default function BalancePage() {
           <div className="balance-metric">
             <CreditCard size={15} className="balance-metric-icon" />
             <div>
-              <p className="balance-metric-value">1</p>
-              <p className="balance-metric-label">Credit per run</p>
+              <p className="balance-metric-value">Rs 1</p>
+              <p className="balance-metric-label">Per credit</p>
             </div>
           </div>
         </div>
 
         <div className="balance-board-body">
           <div className="settings-board-main">
-            <h2 className="settings-section-title">Top up credits</h2>
+            <h2 className="settings-section-title">Add credits</h2>
             <p className="settings-section-desc">
-              Add credits for demo runs or production verifications. Top-ups apply instantly.
+              Rs 1 buys 1 credit. Pay with eSewa and credits land in your account after checkout.
             </p>
 
+            {methods.length > 0 && (
+              <p className="balance-methods">
+                Available:{" "}
+                {methods.map((m) => formatPaymentMethod(m.name)).join(", ")}
+              </p>
+            )}
+
             <div className="balance-presets">
-              <span className="balance-presets-label">Quick amounts</span>
+              <span className="balance-presets-label">Quick amounts (Rs)</span>
               <div className="balance-presets-row">
                 {PRESETS.map((preset) => (
                   <button
@@ -107,7 +152,7 @@ export default function BalancePage() {
             <div className="settings-fields balance-fields">
               <div className="auth-field">
                 <label className="auth-label" htmlFor="topup-amount">
-                  Custom amount
+                  Amount (Rs)
                 </label>
                 <input
                   id="topup-amount"
@@ -121,14 +166,27 @@ export default function BalancePage() {
             </div>
 
             <div className="settings-actions">
-              <button
-                type="button"
-                className="dash-btn dash-btn--primary"
-                onClick={topup}
-                disabled={loading}
-              >
-                {loading ? "Processing…" : `Add ${amount} credits`}
-              </button>
+              {hasEsewa ? (
+                <button
+                  type="button"
+                  className="dash-btn dash-btn--primary"
+                  onClick={payWithEsewa}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 size={14} className="auth-spin" aria-hidden />
+                      Redirecting to eSewa…
+                    </>
+                  ) : (
+                    `Pay Rs ${amount} with eSewa`
+                  )}
+                </button>
+              ) : (
+                <p className="auth-error">
+                  eSewa is not set up yet. Run the payment_method seed on the backend.
+                </p>
+              )}
             </div>
           </div>
 
@@ -136,10 +194,10 @@ export default function BalancePage() {
             <div className="settings-aside-block">
               <h2 className="settings-aside-title">How it works</h2>
               <ul className="balance-info-list">
-                <li>Each document verification consumes 1 credit.</li>
-                <li>Credits are deducted when a check completes.</li>
-                <li>Failed extractions may still use a credit depending on pipeline stage.</li>
-                <li>Top-ups are instant for hackathon and demo accounts.</li>
+                <li>Each document verification uses 1 credit.</li>
+                <li>Rs 1 = 1 credit on eSewa top-up.</li>
+                <li>You are sent to eSewa to complete payment.</li>
+                <li>Credits update after eSewa confirms the payment.</li>
               </ul>
             </div>
 

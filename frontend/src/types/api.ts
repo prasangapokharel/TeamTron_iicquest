@@ -166,6 +166,26 @@ export interface Payment {
   plan_id: string;
 }
 
+export interface PaymentMethod {
+  id: number;
+  name: string;
+}
+
+export interface EsewaInitResponse {
+  transaction_id: string;
+  esewa_url: string;
+  fields: Record<string, string | number>;
+}
+
+export interface WalletTransaction {
+  id: string;
+  payment_method_id: number;
+  amount: number;
+  txid: string;
+  status: "pending" | "success" | "failed" | string;
+  created_at: string;
+}
+
 export interface Balance {
   company_id: string;
   balance: number;
