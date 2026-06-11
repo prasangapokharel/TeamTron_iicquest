@@ -57,9 +57,27 @@ def list_documents(db: Session, company_id: str) -> list:
                 "verdict": result_data.get("verdict"),
                 "risk_score": result_data.get("risk_score"),
                 "criteria_name": result_data.get("criteria", {}).get("name"),
+                "criteria_category": result_data.get("criteria", {}).get("category"),
                 "suggestion_count": len(result_data.get("suggestions", [])),
             })
     return result
+
+
+def get_document_file_path(db: Session, company_id: str, enroll_id: str, file_index: int) -> tuple[str, str]:
+    enroll = read(db, DocumentEnroll, id=enroll_id, company_id=company_id)
+    if not enroll:
+        raise HTTPException(status_code=404, detail="Document not found")
+    doc = read(db, Document, id=enroll.document_id)
+    if not doc or not doc.multipaths:
+        raise HTTPException(status_code=404, detail="No files for this document")
+    if file_index < 0 or file_index >= len(doc.multipaths):
+        raise HTTPException(status_code=404, detail="File not found")
+    path = doc.multipaths[file_index]
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File missing on disk")
+    ext = os.path.splitext(path)[1].lower()
+    media = "image/jpeg" if ext in {".jpg", ".jpeg"} else "image/png"
+    return path, media
 
 
 def get_document(db: Session, company_id: str, enroll_id: str) -> dict:
@@ -68,14 +86,18 @@ def get_document(db: Session, company_id: str, enroll_id: str) -> dict:
         raise HTTPException(status_code=404, detail="Document not found")
     doc = read(db, Document, id=enroll.document_id)
     sig = read(db, Signature, document_enroll_id=enroll.id)
+    r = enroll.result or {}
+    criteria = r.get("criteria") or {}
     return {
         "enroll_id": str(enroll.id),
         "document_id": str(doc.id) if doc else None,
         "paths": doc.multipaths if doc else [],
         "status": enroll.status,
-        "verdict": (enroll.result or {}).get("verdict"),
-        "risk_score": (enroll.result or {}).get("risk_score"),
-        "tron_signed": (enroll.result or {}).get("tron_signed", False),
+        "verdict": r.get("verdict"),
+        "risk_score": r.get("risk_score"),
+        "criteria_name": criteria.get("name"),
+        "criteria_category": criteria.get("category"),
+        "tron_signed": r.get("tron_signed", False),
         "txid": sig.txid if sig else None,
     }
 

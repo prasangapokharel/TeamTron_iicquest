@@ -88,7 +88,10 @@ def verify_documents(
 
     result: dict = {
         "document_enroll_id": str(enroll.id),
+        "enroll_id": str(enroll.id),
         "document_id": str(document.id),
+        "paths": paths,
+        "status": enroll.status,
         "criteria_enroll_id": criteria_enroll_id,
         "criteria": {
             "id": criteria_id,
@@ -143,6 +146,7 @@ def verify_documents(
     elif verdict == ORANGE:
         update(db, enroll, status=DocumentStatus.review)
 
+    result["status"] = enroll.status
     update(db, enroll, result=result)
     update(db, balance_row, balance=balance_row.balance - cost)
 

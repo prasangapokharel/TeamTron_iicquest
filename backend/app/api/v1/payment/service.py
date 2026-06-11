@@ -185,11 +185,16 @@ def _credit_company(db: Session, txn: Transaction) -> dict:
 
     update(db, txn, status="success")
 
+    plans = read_all(db, Plan)
+    plan = plans[0] if plans else None
+    credit_price = plan.per_user if plan and plan.per_user else 1
+    credits_to_add = txn.amount // credit_price if credit_price else txn.amount
+
     balance = read(db, Balance, company_id=txn.company_id)
     if balance:
-        update(db, balance, balance=balance.balance + txn.amount)
+        update(db, balance, balance=balance.balance + credits_to_add)
     else:
-        create(db, Balance, company_id=txn.company_id, balance=txn.amount)
+        create(db, Balance, company_id=txn.company_id, balance=credits_to_add)
 
     balance_row = read(db, Balance, company_id=txn.company_id)
     if not balance_row:
@@ -199,6 +204,7 @@ def _credit_company(db: Session, txn: Transaction) -> dict:
         "message": "Payment successful",
         "transaction_id": str(txn.id),
         "amount": txn.amount,
+        "credits_added": credits_to_add,
         "new_balance": balance_row.balance,
     }
 

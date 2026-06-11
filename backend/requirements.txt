@@ -11,3 +11,4 @@ tronpy>=0.2
 python-multipart>=0.0.9
 supabase>=2.0
 httpx>=0.27
+together>=1.3

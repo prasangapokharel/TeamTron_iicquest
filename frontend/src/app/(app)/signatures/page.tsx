@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ExternalLink, Link2 } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { signatureApi } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
 import type { SignatureItem } from "@/types/api";
 
 export default function SignaturesPage() {
@@ -16,7 +17,7 @@ export default function SignaturesPage() {
     signatureApi
       .list()
       .then(setSigs)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(formatApiError(e)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -24,7 +25,7 @@ export default function SignaturesPage() {
     <div className="dash-content dash-content--saas">
       <PageHeader
         title="Blockchain"
-        description="Tron on-chain proofs for verified documents"
+        description="GET /signature — Tron on-chain proofs for verified documents"
         actions={<span className="docs-count-pill">{sigs.length} signatures</span>}
       />
 
@@ -76,7 +77,11 @@ export default function SignaturesPage() {
                         </Link>
                       </td>
                       <td><span className="badge badge-ignored">{s.document_status}</span></td>
-                      <td><code className="settings-id">{s.txid.slice(0, 14)}…</code></td>
+                      <td>
+                        <Link href={`/verify/${s.txid}`} className="dash-text-link">
+                          <code className="settings-id">{s.txid.slice(0, 14)}…</code>
+                        </Link>
+                      </td>
                       <td><code className="settings-id">{s.to_address.slice(0, 10)}…</code></td>
                       <td className="dash-table-action">
                         <a href={s.verify_url} target="_blank" rel="noopener noreferrer" aria-label="TronScan">

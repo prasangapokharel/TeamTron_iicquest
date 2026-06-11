@@ -12,6 +12,7 @@ import {
   ActivityAreaChart,
 } from "@/components/dashboard/dashboard-charts";
 import { balanceApi, companyApi } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
 import type { DashboardData } from "@/types/api";
 import { VerdictBadge } from "@/components/verify/verdict-badge";
 
@@ -39,7 +40,7 @@ export default function DashboardPage() {
         }, delay);
       })
       .catch((e) => {
-        if (!cancelled) setError(e.message);
+        if (!cancelled) setError(formatApiError(e));
       });
 
     return () => {

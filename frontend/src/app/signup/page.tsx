@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { AuthField, AuthLayout } from "@/components/marketing/auth-layout";
 import { AuthInput, AuthSelect } from "@/components/marketing/auth-input";
 import { authApi, balanceApi } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
 import { setAuth } from "@/lib/auth";
 
 const CATEGORIES = ["Bank", "Manpower Agency", "Consultancy", "Insurance", "Others"];
@@ -45,7 +46,7 @@ export default function SignupPage() {
       void category;
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setError(formatApiError(err));
     } finally {
       setLoading(false);
     }

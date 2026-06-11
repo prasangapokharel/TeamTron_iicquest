@@ -1,16 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Upload, X, Loader2 } from "lucide-react";
 import { CreditsAlert, CreditsStatus } from "@/components/documents/credits-alert";
-import { balanceApi, criteriaApi, documentApi } from "@/lib/api";
-import { isInsufficientCredits } from "@/lib/errors";
-import type { Criteria, VerificationResult } from "@/types/api";
+import { balanceApi, criteriaApi, verifyApi } from "@/lib/api";
+import { fetchPlanPricing } from "@/lib/pricing";
+import { formatApiError, isInsufficientCredits } from "@/lib/errors";
+import type { CriteriaEnroll, VerificationResult } from "@/types/api";
 
 export function VerifyPanel({ onVerified }: { onVerified?: (result: VerificationResult) => void }) {
   const router = useRouter();
-  const [criteria, setCriteria] = useState<Criteria[]>([]);
+  const [enrolled, setEnrolled] = useState<CriteriaEnroll[]>([]);
   const [criteriaId, setCriteriaId] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
@@ -18,6 +20,11 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [outOfCredits, setOutOfCredits] = useState(false);
+  const [verifyCost, setVerifyCost] = useState(50);
+
+  useEffect(() => {
+    fetchPlanPricing().then(({ verifyCostCredits }) => setVerifyCost(verifyCostCredits));
+  }, []);
 
   const loadBalance = useCallback(() => {
     setBalanceLoading(true);
@@ -25,7 +32,7 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
       .get()
       .then((b) => {
         setBalance(b.balance);
-        if (b.balance >= 1) setOutOfCredits(false);
+        if (b.balance >= verifyCost) setOutOfCredits(false);
         return b.balance;
       })
       .catch(() => {
@@ -33,15 +40,19 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
         return null;
       })
       .finally(() => setBalanceLoading(false));
+  }, [verifyCost]);
+
+  const loadCriteria = useCallback(() => {
+    criteriaApi.enrolled().then((list) => {
+      setEnrolled(list);
+      if (list[0]) setCriteriaId(list[0].criteria_id);
+    });
   }, []);
 
   useEffect(() => {
-    criteriaApi.list().then((list) => {
-      setCriteria(list);
-      if (list[0]) setCriteriaId(list[0].id);
-    });
+    loadCriteria();
     loadBalance();
-  }, [loadBalance]);
+  }, [loadCriteria, loadBalance]);
 
   useEffect(() => {
     const onFocus = () => loadBalance();
@@ -62,10 +73,11 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
     setError("");
   };
 
-  const noCredits = balance !== null && balance < 1;
+  const noCredits = balance !== null && balance < verifyCost;
+  const noEnrolled = enrolled.length === 0;
 
   const submit = async () => {
-    if (!criteriaId) return setError("Select a criteria");
+    if (!criteriaId) return setError("Select an enrolled criteria pack");
     if (files.length < 1) return setError("Upload at least 1 image (max 5)");
     if (noCredits) {
       setOutOfCredits(true);
@@ -76,17 +88,21 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
     setOutOfCredits(false);
     setLoading(true);
     try {
-      const res = await documentApi.verify(criteriaId, files);
+      const res = await verifyApi.upload(criteriaId, files);
       onVerified?.(res);
       reset();
-      await loadBalance();
+      if (res.balance_remaining !== undefined) {
+        setBalance(res.balance_remaining);
+      } else {
+        await loadBalance();
+      }
     } catch (e: unknown) {
       if (isInsufficientCredits(e)) {
         setOutOfCredits(true);
         setBalance(0);
         setError("");
       } else {
-        setError(e instanceof Error ? e.message : "Verification failed");
+        setError(formatApiError(e));
       }
     } finally {
       setLoading(false);
@@ -99,13 +115,23 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
     <div className="verify-panel">
       <h2 className="settings-section-title">New verification</h2>
       <p className="settings-section-desc">
-        Upload 1 to 5 images. We extract fields, run your rules, and sign on Tron if it passes.
+        Upload 1 to 5 images. Uses {verifyCost} credits per run. We extract fields, run your rules, and sign on Tron if it passes.
       </p>
 
-      <CreditsStatus balance={balance} loading={balanceLoading} />
+      <CreditsStatus balance={balance} loading={balanceLoading} cost={verifyCost} />
 
       {showCreditsAlert && balance !== null && (
-        <CreditsAlert balance={balance} blocked={outOfCredits && !noCredits} />
+        <CreditsAlert balance={balance} cost={verifyCost} blocked={outOfCredits && !noCredits} />
+      )}
+
+      {noEnrolled && (
+        <p className="auth-error">
+          No criteria enrolled yet.{" "}
+          <Link href="/criteria" className="dash-text-link">
+            Enroll a pack
+          </Link>{" "}
+          before verifying.
+        </p>
       )}
 
       <div className="auth-field">
@@ -117,17 +143,17 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
           className="input-dark"
           value={criteriaId}
           onChange={(e) => setCriteriaId(e.target.value)}
-          disabled={noCredits}
+          disabled={noCredits || noEnrolled}
         >
-          {criteria.map((c) => (
-            <option key={c.id} value={c.id}>
+          {enrolled.map((c) => (
+            <option key={c.enroll_id} value={c.criteria_id}>
               {c.data.name} ({c.data.category})
             </option>
           ))}
         </select>
       </div>
 
-      <div className={`upload-zone${noCredits ? " upload-zone--disabled" : ""}`}>
+      <div className={`upload-zone${noCredits || noEnrolled ? " upload-zone--disabled" : ""}`}>
         <input
           type="file"
           accept="image/jpeg,image/png,image/jpg"
@@ -135,11 +161,11 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
           onChange={onFiles}
           className="upload-input"
           id="doc-file-upload"
-          disabled={noCredits}
+          disabled={noCredits || noEnrolled}
         />
         <label
           htmlFor="doc-file-upload"
-          className={`upload-label${noCredits ? " upload-label--disabled" : ""}`}
+          className={`upload-label${noCredits || noEnrolled ? " upload-label--disabled" : ""}`}
         >
           <Upload size={22} />
           <span>Drop images or click to browse</span>
@@ -167,7 +193,7 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
           type="button"
           className="dash-btn dash-btn--primary"
           onClick={submit}
-          disabled={loading || noCredits}
+          disabled={loading || noCredits || noEnrolled}
         >
           {loading ? (
             <>
@@ -177,10 +203,10 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
           ) : noCredits ? (
             "Add credits to verify"
           ) : (
-            "Run verification"
+            `Run verification (${verifyCost} credits)`
           )}
         </button>
-        {criteria.length === 0 && (
+        {noEnrolled && (
           <button
             type="button"
             className="dash-btn dash-btn--ghost"

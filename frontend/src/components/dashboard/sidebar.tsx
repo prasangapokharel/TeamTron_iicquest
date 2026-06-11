@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { SidebarProfile } from "@/components/dashboard/sidebar-profile";
+import { ServiceStatus } from "@/components/dashboard/service-status";
 import { clearAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
@@ -86,6 +87,7 @@ export function DashboardSidebar() {
       </nav>
 
       <div className="dash-sidebar-foot">
+        <ServiceStatus />
         <SidebarProfile />
         <button type="button" className="sidebar-link dash-logout" onClick={logout}>
           <LogOut size={16} strokeWidth={1.75} />

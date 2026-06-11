@@ -5,6 +5,8 @@ import { Copy, Trash2, Plus, Check, BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ApiDocsPanel } from "@/components/settings/api-docs-panel";
 import { apikeyApi, criteriaApi } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
+import { DEFAULT_VERIFY_COST_CREDITS, fetchPlanPricing } from "@/lib/pricing";
 import type { ApiKeyItem, CriteriaEnroll } from "@/types/api";
 
 export default function ApiKeysPage() {
@@ -13,14 +15,16 @@ export default function ApiKeysPage() {
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [verifyCost, setVerifyCost] = useState(DEFAULT_VERIFY_COST_CREDITS);
 
   const load = () => {
-    apikeyApi.list().then(setKeys).catch((e) => setError(e.message));
+    apikeyApi.list().then(setKeys).catch((e) => setError(formatApiError(e)));
     criteriaApi.enrolled().then(setEnrolled).catch(() => {});
   };
 
   useEffect(() => {
     load();
+    fetchPlanPricing().then(({ verifyCostCredits }) => setVerifyCost(verifyCostCredits));
   }, []);
 
   const generate = async () => {
@@ -30,13 +34,17 @@ export default function ApiKeysPage() {
       setNewKey(k.apikey);
       load();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to generate key");
+      setError(formatApiError(e));
     }
   };
 
   const revoke = async (id: string) => {
-    await apikeyApi.revoke(id);
-    load();
+    try {
+      await apikeyApi.revoke(id);
+      load();
+    } catch (e) {
+      setError(formatApiError(e));
+    }
   };
 
   const copyKey = async (text: string) => {
@@ -144,7 +152,7 @@ export default function ApiKeysPage() {
               <span className="api-doc-step-num">2</span>
               <div>
                 <h3>Add credits</h3>
-                <p>1 credit per verification run.</p>
+                <p>{verifyCost} credits per verification run.</p>
               </div>
             </li>
             <li className="api-doc-step">
@@ -173,7 +181,7 @@ export default function ApiKeysPage() {
         className="dash-board api-docs-board"
         aria-label="API integration documentation"
       >
-        <ApiDocsPanel enrolled={enrolled} />
+        <ApiDocsPanel enrolled={enrolled} verifyCost={verifyCost} />
       </section>
     </div>
   );

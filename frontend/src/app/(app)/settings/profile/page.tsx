@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Loader2, Upload, Wallet, ArrowUpRight } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { balanceApi, companyApi } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
 import { API_ORIGIN } from "@/lib/config";
 import type { Company } from "@/types/api";
 
@@ -43,7 +44,7 @@ export default function ProfilePage() {
       setCompany(updated);
       setMsg("Profile updated successfully.");
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Update failed");
+      setError(formatApiError(e));
     } finally {
       setSaving(false);
     }
@@ -60,7 +61,7 @@ export default function ProfilePage() {
       setCompany(updated);
       setMsg("Logo updated successfully.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(formatApiError(err));
     } finally {
       setUploading(false);
     }

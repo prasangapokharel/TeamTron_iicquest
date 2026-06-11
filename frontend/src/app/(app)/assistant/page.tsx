@@ -2,16 +2,29 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Send, Bot, User, Loader2, Trash2 } from "lucide-react";
+import { Send, Bot, User, Loader2, Trash2, Copy, Check, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { assistantApi, documentApi } from "@/lib/api";
+import { formatApiError, isServerError } from "@/lib/errors";
 
 const STORAGE_KEY = "vivadx-assistant-messages";
+const MAX_LEN = 1000;
+
+const SUGGESTED = [
+  "How many documents were verified today?",
+  "What is my current balance?",
+  "Show me my recent failed verifications.",
+  "Which criteria do I use most?",
+  "What is my verification success rate?",
+  "List my last 5 blockchain-signed documents.",
+  "How much have I spent on verifications?",
+];
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   vectorless?: boolean;
+  failed?: boolean;
 }
 
 function loadMessages(): Message[] {
@@ -24,6 +37,20 @@ function loadMessages(): Message[] {
   }
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button type="button" className="chat-copy-btn" onClick={copy} aria-label="Copy answer">
+      {copied ? <Check size={12} /> : <Copy size={12} />}
+    </button>
+  );
+}
+
 function AssistantChat() {
   const searchParams = useSearchParams();
   const enrollId = searchParams.get("enroll");
@@ -32,6 +59,7 @@ function AssistantChat() {
   const [loading, setLoading] = useState(false);
   const [contextNote, setContextNote] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const [lastQuestion, setLastQuestion] = useState("");
 
   useEffect(() => {
     setMessages(loadMessages());
@@ -48,10 +76,14 @@ function AssistantChat() {
     if (enrollId) {
       documentApi.result(enrollId).then((r) => {
         setContextNote(
-          `Context loaded for ${r.criteria?.name ?? "document"} (${enrollId.slice(0, 8)}…)`
+          `Context loaded for ${r.criteria?.name ?? "document"} (${enrollId.slice(0, 8)}…)`,
         );
         setInput(`Explain the verification result for enroll ${enrollId.slice(0, 8)}`);
-      }).catch(() => {});
+      }).catch(() => {
+        documentApi.get(enrollId).then((d) => {
+          setContextNote(`Document ${enrollId.slice(0, 8)}… — status: ${d.status}`);
+        }).catch(() => {});
+      });
     }
   }, [enrollId]);
 
@@ -60,14 +92,17 @@ function AssistantChat() {
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput("");
-    setMessages((m) => [...m, { role: "user", content: text }]);
+  const ask = async (text: string, retry = false) => {
+    const q = text.trim();
+    if (!q || loading) return;
+    if (!retry) {
+      setInput("");
+      setMessages((m) => [...m, { role: "user", content: q }]);
+    }
+    setLastQuestion(q);
     setLoading(true);
     try {
-      const res = await assistantApi.chat(text);
+      const res = await assistantApi.chat(q);
       setMessages((m) => [
         ...m,
         {
@@ -79,18 +114,23 @@ function AssistantChat() {
     } catch (e: unknown) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: e instanceof Error ? e.message : "Error" },
+        { role: "assistant", content: formatApiError(e), failed: isServerError(e) },
       ]);
     } finally {
       setLoading(false);
     }
   };
 
+  const send = () => ask(input);
+
+  const charCount = input.length;
+  const charWarn = charCount >= 900;
+
   return (
     <div className="dash-content dash-content--saas">
       <PageHeader
         title="Assistant"
-        description="Ask about your verifications. Answers come straight from your live data."
+        description="POST /assistant/chat — answers from your live verification data"
         actions={
           messages.length > 0 ? (
             <button type="button" className="dash-btn dash-btn--ghost" onClick={clearChat}>
@@ -118,11 +158,7 @@ function AssistantChat() {
                 <Bot size={28} className="text-[var(--primary)]" />
                 <p>Ask about verifications, risk scores, or blockchain proofs.</p>
                 <div className="chat-suggestions">
-                  {[
-                    "How many documents failed?",
-                    "What was my last verification score?",
-                    "How many blockchain signatures do I have?",
-                  ].map((q) => (
+                  {SUGGESTED.map((q) => (
                     <button
                       key={q}
                       type="button"
@@ -143,6 +179,21 @@ function AssistantChat() {
                   {m.vectorless && (
                     <span className="chat-meta">Live data from your account</span>
                   )}
+                  {m.role === "assistant" && (
+                    <div className="chat-bubble-actions">
+                      <CopyButton text={m.content} />
+                      {m.failed && (
+                        <button
+                          type="button"
+                          className="chat-copy-btn"
+                          onClick={() => ask(lastQuestion, true)}
+                          aria-label="Retry"
+                        >
+                          <RotateCcw size={12} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -155,22 +206,31 @@ function AssistantChat() {
           </div>
 
           <form
-            className="chat-input-row"
+            className="chat-input-wrap"
             onSubmit={(e) => {
               e.preventDefault();
               send();
             }}
           >
-            <input
-              className="input-dark flex-1"
-              placeholder="Ask about your documents…"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              maxLength={1000}
-            />
-            <button type="submit" className="dash-btn dash-btn--primary" disabled={loading}>
-              <Send size={14} />
-            </button>
+            <div className="chat-input-row">
+              <input
+                className="input-dark flex-1"
+                placeholder="Ask about your documents…"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                maxLength={MAX_LEN}
+              />
+              <button
+                type="submit"
+                className="dash-btn dash-btn--primary"
+                disabled={loading || !input.trim()}
+              >
+                <Send size={14} />
+              </button>
+            </div>
+            <p className={`chat-char-count${charWarn ? " chat-char-count--warn" : ""}`}>
+              {charCount}/{MAX_LEN}
+            </p>
           </form>
         </div>
       </section>
