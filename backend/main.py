@@ -18,6 +18,8 @@ from app.api.v1.payment.route import router as payment_router
 from app.api.v1.verify.route import router as verify_router
 from app.api.v1.assistant.route import router as assistant_router
 from app.api.v1.balance.route import router as balance_router
+from app.api.v1.payment_method.route import router as payment_method_router
+from app.api.v1.transaction.route import router as transaction_router
 
 os.makedirs("bucket/logo", exist_ok=True)
 
@@ -49,6 +51,8 @@ app.include_router(payment_router, prefix=PREFIX)
 app.include_router(verify_router, prefix=PREFIX)
 app.include_router(assistant_router, prefix=PREFIX)
 app.include_router(balance_router, prefix=PREFIX)
+app.include_router(payment_method_router, prefix=PREFIX)
+app.include_router(transaction_router, prefix=PREFIX)
 
 
 app.mount("/bucket", StaticFiles(directory="bucket"), name="bucket")

@@ -1,0 +1,4 @@
+payment_method: id, Name
+value : 1, esewa
+
+transaction: payment_method_id, amount, txid, date 

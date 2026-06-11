@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from db.config.env import get_db
@@ -15,6 +16,10 @@ class PaymentCreateRequest(BaseModel):
     amount: int
 
 
+class EsewaInitRequest(BaseModel):
+    amount: int = Field(..., gt=0)
+
+
 @router.post("", status_code=201)
 def create_payment(
     body: PaymentCreateRequest,
@@ -25,5 +30,28 @@ def create_payment(
 
 
 @router.get("")
-def list_payments(db: Session = Depends(get_db), company: Company = Depends(get_current_company)):
+def list_payments(
+    db: Session = Depends(get_db),
+    company: Company = Depends(get_current_company),
+):
     return service.list_payments(db, str(company.id))
+
+
+@router.post("/initialize")
+def initialize_esewa(
+    body: EsewaInitRequest,
+    db: Session = Depends(get_db),
+    company: Company = Depends(get_current_company),
+):
+    return service.initialize_esewa(db, str(company.id), body.amount)
+
+
+@router.get("/success")
+def esewa_success(data: str = Query(...), db: Session = Depends(get_db)):
+    result = service.verify_esewa(db, data)
+    return result
+
+
+@router.get("/failure")
+def esewa_failure():
+    return {"message": "Payment failed or cancelled"}

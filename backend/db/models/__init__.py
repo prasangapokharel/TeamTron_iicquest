@@ -11,3 +11,5 @@ from db.models.apikey import ApiKey
 from db.models.plan import Plan
 from db.models.payment import Payment
 from db.models.balance import Balance
+from db.models.payment_method import PaymentMethod
+from db.models.transaction import Transaction

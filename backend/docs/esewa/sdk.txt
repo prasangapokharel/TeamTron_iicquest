@@ -1,0 +1,31 @@
+https://developer.esewa.com.np/pages/Intent#transactionflow
+
+
+hmac_sha256 = hmac.new(secret, message, hashlib.sha256)
+digest = hmac_sha256.digest()
+signature = base64.b64encode(digest).decode('utf-8') 
+
+
+https://developer.esewa.com.np/pages/Epay#integration
+
+
+
+Test Login Credentials
+Credentials
+
+Here are the test credentials & details which are required for developing environment.For production environment we will provide live credentials after successful test transactions.
+ eSewa ID & Password:
+To make payment with eSewa sdk. One must be a registered eSewa user. For testing phase, the client/merchant can use the following eSewa id and password:
+
+ eSewa ID: 9711111111/9711111112/9711111113/9711111114
+ Password: Nepal@123 
+MPIN: 1122 (for application only) 
+ Merchant ID/Service Code: EPAYTEST
+Token:123456 
+
+For Epay-v2:
+Secret Key:8gBm/:&EnhH.1/q
+
+ For SDK Integration:
+client_id:JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R 
+ client_secret:BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==
