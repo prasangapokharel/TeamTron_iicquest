@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck, ExternalLink, ArrowLeft } from "lucide-react";
 import { signatureApi } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
 import type { TxVerifyResponse } from "@/types/api";
 import { Logo } from "@/components/ui/Logo";
 
@@ -15,7 +16,7 @@ export default function PublicVerifyPage() {
 
   useEffect(() => {
     if (txid) {
-      signatureApi.verifyTx(txid).then(setData).catch((e) => setError(e.message));
+      signatureApi.verifyTx(txid).then(setData).catch((e) => setError(formatApiError(e)));
     }
   }, [txid]);
 

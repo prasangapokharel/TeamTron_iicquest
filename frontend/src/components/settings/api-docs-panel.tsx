@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Copy, Check, ArrowUpRight } from "lucide-react";
 import { API_BASE, API_ORIGIN } from "@/lib/config";
+import { DEFAULT_VERIFY_COST_CREDITS } from "@/lib/pricing";
 import type { CriteriaEnroll } from "@/types/api";
 
 function CodeBlock({ code, label }: { code: string; label?: string }) {
@@ -36,10 +37,18 @@ const SAMPLE_RESPONSE = `{
   "extracted_fields": { "full_name": "...", "citizenship_no": "..." },
   "flags": [{ "field": "...", "severity": "green", "message": "..." }],
   "tron_signed": true,
+  "cost_deducted": 50,
+  "balance_remaining": 50,
   "verify_url": "https://nile.tronscan.org/#/transaction/..."
 }`;
 
-export function ApiDocsPanel({ enrolled }: { enrolled: CriteriaEnroll[] }) {
+export function ApiDocsPanel({
+  enrolled,
+  verifyCost = DEFAULT_VERIFY_COST_CREDITS,
+}: {
+  enrolled: CriteriaEnroll[];
+  verifyCost?: number;
+}) {
   const sampleCriteriaId = enrolled[0]?.criteria_id ?? "YOUR_CRITERIA_ID";
   const sampleCriteriaName = enrolled[0]?.data?.name ?? "Bank KYC";
 
@@ -87,7 +96,7 @@ const data = await res.json();`;
       title: "Top up credits",
       body: (
         <>
-          Each verification costs <strong>1 credit</strong>. Add credits on the{" "}
+          Each verification costs <strong>{verifyCost} credits</strong>. Add credits on the{" "}
           <Link href="/settings/balance" className="api-doc-link">
             Balance <ArrowUpRight size={12} />
           </Link>{" "}

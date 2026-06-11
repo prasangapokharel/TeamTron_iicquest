@@ -1,6 +1,14 @@
+/** API error shape from FastAPI */
 export interface ApiError {
-  detail: string | { msg: string }[];
+  detail: string | { msg: string; loc?: string[] }[];
 }
+
+export interface HealthResponse {
+  status: string;
+  service: string;
+}
+
+// ─── Auth & Company ─────────────────────────────────────────────────────────
 
 export interface Company {
   id: string;
@@ -49,6 +57,8 @@ export interface RecentVerification {
   verify_url?: string;
 }
 
+// ─── Category ───────────────────────────────────────────────────────────────
+
 export interface Category {
   id: string;
   name: string;
@@ -60,11 +70,20 @@ export interface CategoryEnroll {
   name: string;
 }
 
+export interface CategoryEnrollCreateResponse {
+  id: string;
+  company_id: string;
+  category_id: string;
+}
+
+// ─── Criteria ───────────────────────────────────────────────────────────────
+
 export interface CriteriaRule {
   id?: string;
   field?: string;
   fields?: string[];
   check?: string;
+  match?: string;
   severity?: string;
   description?: string;
   threshold?: number;
@@ -83,11 +102,24 @@ export interface Criteria {
   data: CriteriaData;
 }
 
+/** GET /criteria/enrolled */
 export interface CriteriaEnroll {
   enroll_id: string;
   criteria_id: string;
   data: CriteriaData;
 }
+
+/** POST /criteria/enroll */
+export interface CriteriaEnrollCreateResponse {
+  id: string;
+  company_id: string;
+  criteria_id: string;
+  severity: string | null;
+  message: string | null;
+  is_critical: boolean;
+}
+
+// ─── Documents & Verify ─────────────────────────────────────────────────────
 
 export interface DocumentListItem {
   enroll_id: string;
@@ -97,7 +129,28 @@ export interface DocumentListItem {
   verdict?: string;
   risk_score?: number;
   criteria_name?: string;
+  criteria_category?: string;
   suggestion_count?: number;
+}
+
+/** GET /document/:enroll_id */
+export interface DocumentDetail {
+  enroll_id: string;
+  document_id: string | null;
+  paths: string[];
+  status: string;
+  verdict?: string;
+  risk_score?: number;
+  criteria_name?: string;
+  criteria_category?: string;
+  tron_signed?: boolean;
+  txid?: string | null;
+}
+
+export interface DocumentCreateResponse {
+  document_id: string;
+  enroll_id: string;
+  paths: string[];
 }
 
 export interface VerificationFlag {
@@ -106,12 +159,14 @@ export interface VerificationFlag {
   value?: string;
   issue?: string | null;
   is_critical?: boolean;
+  message?: string;
 }
 
 export interface VerificationResult {
   enroll_id?: string;
   document_enroll_id?: string;
   document_id?: string;
+  criteria_enroll_id?: string;
   paths?: string[];
   status: string;
   criteria?: { id: string; name: string; category: string };
@@ -127,6 +182,8 @@ export interface VerificationResult {
   hash?: string;
   verify_url?: string;
   tron_error?: string;
+  cost_deducted?: number;
+  balance_remaining?: number;
   signature?: {
     id: string;
     hash: string;
@@ -135,6 +192,8 @@ export interface VerificationResult {
     verify_url: string;
   };
 }
+
+// ─── Signature ──────────────────────────────────────────────────────────────
 
 export interface SignatureItem {
   signature_id: string;
@@ -147,11 +206,42 @@ export interface SignatureItem {
   created_at?: string;
 }
 
+export interface SignatureDetail {
+  hash?: string;
+  txid?: string;
+  to_address?: string;
+  verify_url?: string;
+  document_enroll_id?: string;
+}
+
+export interface SignatureSignResponse {
+  hash: string;
+  txid: string;
+  to_address: string;
+  verify_url: string;
+}
+
+export interface TxVerifyResponse {
+  txid: string;
+  status: string;
+  hash: string;
+  verify_url: string;
+}
+
+// ─── API Keys ─────────────────────────────────────────────────────────────────
+
 export interface ApiKeyItem {
   id: string;
   apikey: string;
   status: string;
 }
+
+export interface ApiKeyRevokeResponse {
+  message: string;
+  id: string;
+}
+
+// ─── Billing ────────────────────────────────────────────────────────────────
 
 export interface Plan {
   id: string;
@@ -191,15 +281,14 @@ export interface Balance {
   balance: number;
 }
 
+// ─── Assistant ──────────────────────────────────────────────────────────────
+
 export interface AssistantResponse {
   question: string;
   answer: string;
-  context_summary: { data_source: string; vectorless: boolean };
-}
-
-export interface TxVerifyResponse {
-  txid: string;
-  status: string;
-  hash: string;
-  verify_url: string;
+  context_summary: {
+    data_source: string;
+    vectorless: boolean;
+    model?: string;
+  };
 }

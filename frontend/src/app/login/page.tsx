@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { AuthField, AuthLayout } from "@/components/marketing/auth-layout";
 import { AuthInput } from "@/components/marketing/auth-input";
 import { authApi } from "@/lib/api";
 import { setAuth } from "@/lib/auth";
+import { formatApiError } from "@/lib/errors";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +16,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("session") === "expired") {
+      setError("Session expired. Please sign in again.");
+    }
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +33,7 @@ export default function LoginPage() {
       setAuth(res.access_token, res.company_id);
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Invalid email or password");
+      setError(formatApiError(err));
     } finally {
       setLoading(false);
     }

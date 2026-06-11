@@ -1,4 +1,7 @@
+import os
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
@@ -45,6 +48,18 @@ def create_document(
 @router.get("")
 def list_documents(db: Session = Depends(get_db), company: Company = Depends(get_current_company)):
     return service.list_documents(db, str(company.id))
+
+
+@router.get("/{enroll_id}/file/{file_index}")
+def get_document_file(
+    enroll_id: str,
+    file_index: int,
+    db: Session = Depends(get_db),
+    company: Company = Depends(get_current_company),
+):
+    path, media_type = service.get_document_file_path(db, str(company.id), enroll_id, file_index)
+    filename = os.path.basename(path)
+    return FileResponse(path, media_type=media_type, filename=filename)
 
 
 @router.get("/{enroll_id}/result")

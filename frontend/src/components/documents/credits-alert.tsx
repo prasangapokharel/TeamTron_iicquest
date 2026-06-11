@@ -3,9 +3,11 @@ import { ArrowUpRight, Wallet, Zap } from "lucide-react";
 
 export function CreditsAlert({
   balance,
+  cost = 50,
   blocked,
 }: {
   balance: number;
+  cost?: number;
   blocked?: boolean;
 }) {
   return (
@@ -17,7 +19,7 @@ export function CreditsAlert({
             {blocked ? "Not enough credits to run this check" : "You are out of credits"}
           </p>
           <p className="credits-alert-desc">
-            Each verification uses 1 credit. You have{" "}
+            Each verification uses {cost} credits. You have{" "}
             <strong>{balance}</strong> left. Top up with eSewa on the Balance page, then come
             back here to verify.
           </p>
@@ -34,15 +36,17 @@ export function CreditsAlert({
 export function CreditsStatus({
   balance,
   loading,
+  cost = 50,
 }: {
   balance: number | null;
   loading?: boolean;
+  cost?: number;
 }) {
   if (loading || balance === null) return null;
 
-  if (balance < 1) return null;
+  if (balance < cost) return null;
 
-  const low = balance <= 3;
+  const low = balance < cost * 2;
 
   return (
     <p className={`credits-status${low ? " credits-status--low" : ""}`}>

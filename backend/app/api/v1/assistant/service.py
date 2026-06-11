@@ -17,7 +17,18 @@ SYSTEM_PROMPT = (
     "When mentioning blockchain transactions, include the verify_url. /no_think"
 )
 
-_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+_client: Together | None = None
+
+
+def _get_client() -> Together:
+    global _client
+    if _client is not None:
+        return _client
+    api_key = os.getenv("TOGETHER_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Assistant is not configured (missing TOGETHER_API_KEY)")
+    _client = Together(api_key=api_key)
+    return _client
 
 
 def chat(db: Session, company_id: str, message: str) -> dict:
@@ -29,7 +40,7 @@ def chat(db: Session, company_id: str, message: str) -> dict:
     context = build_context(db, company_id)
 
     try:
-        resp = _client.chat.completions.create(
+        resp = _get_client().chat.completions.create(
             model=MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},

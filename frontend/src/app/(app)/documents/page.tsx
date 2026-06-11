@@ -8,8 +8,10 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { VerifyPanel } from "@/components/documents/verify-panel";
 import { ResultPanel } from "@/components/verify/result-panel";
 import { documentApi } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
 import type { DocumentListItem, VerificationResult } from "@/types/api";
 import { VerdictBadge } from "@/components/verify/verdict-badge";
+import { formatCategoryLabel } from "@/lib/format";
 
 export default function DocumentsPage() {
   const router = useRouter();
@@ -23,7 +25,7 @@ export default function DocumentsPage() {
     documentApi
       .list()
       .then(setDocs)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(formatApiError(e)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -107,6 +109,7 @@ export default function DocumentsPage() {
                 <thead>
                   <tr>
                     <th>Criteria</th>
+                    <th>Category</th>
                     <th>Status</th>
                     <th>Verdict</th>
                     <th>Score</th>
@@ -122,6 +125,15 @@ export default function DocumentsPage() {
                           <span>{d.criteria_name ?? "Document"}</span>
                           <code>{d.enroll_id.slice(0, 8)}</code>
                         </Link>
+                      </td>
+                      <td>
+                        {d.criteria_category ? (
+                          <span className="criteria-chip criteria-chip--category criteria-chip--table">
+                            {formatCategoryLabel(d.criteria_category)}
+                          </span>
+                        ) : (
+                          "n/a"
+                        )}
                       </td>
                       <td><span className="badge badge-ignored">{d.status}</span></td>
                       <td><VerdictBadge verdict={d.verdict} /></td>

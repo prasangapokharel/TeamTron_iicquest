@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthGuard } from "@/components/dashboard/auth-guard";
+import { LowBalanceBanner } from "@/components/dashboard/low-balance-banner";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -8,7 +9,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <AuthGuard>
       <div className="dash-shell app-grid-bg">
         <DashboardSidebar />
-        <main className="dash-main">{children}</main>
+        <main className="dash-main">
+          <LowBalanceBanner />
+          {children}
+        </main>
       </div>
     </AuthGuard>
   );
