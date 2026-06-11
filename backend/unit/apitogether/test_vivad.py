@@ -11,12 +11,14 @@ client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
 MODEL = "incpractical_b3ab/Qwen3-8B-Vivad-b073dc2a-4f79c591"
 
+import re
+
 SYSTEM = (
     "You are VIVAD, the intelligent AI assistant for the VIVAD X platform — "
     "a Smart Document Reconciliation & Verification System. You help companies verify "
     "documents using AI vision, dynamic criteria, and blockchain signing. Answer questions "
     "about document verification, balance, eSewa payments, criteria management, blockchain "
-    "signatures, the dashboard, and API usage. Be precise, professional, and concise."
+    "signatures, the dashboard, and API usage. Be precise, professional, and concise. /no_think"
 )
 
 questions = [
@@ -36,8 +38,10 @@ for q in questions:
             {"role": "system", "content": SYSTEM},
             {"role": "user", "content": q},
         ],
-        max_tokens=2048,
+        max_tokens=1024,
         temperature=0.3,
         stop=["<|im_end|>", "<|endoftext|>"],
     )
-    print(f"A: {resp.choices[0].message.content.strip()}")
+    answer = resp.choices[0].message.content.strip()
+    answer = re.sub(r'<think>.*?</think>', '', answer, flags=re.DOTALL).strip()
+    print(f"A: {answer}")

@@ -1,4 +1,5 @@
 import os
+import re
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from together import Together
@@ -13,7 +14,7 @@ SYSTEM_PROMPT = (
     "documents using AI vision, dynamic criteria, and blockchain signing. "
     "You have access to real-time company data provided as context. "
     "Answer using ONLY the context when it is available. Be precise, professional, and concise. "
-    "When mentioning blockchain transactions, include the verify_url."
+    "When mentioning blockchain transactions, include the verify_url. /no_think"
 )
 
 _client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
@@ -34,11 +35,12 @@ def chat(db: Session, company_id: str, message: str) -> dict:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": f"=== CONTEXT ===\n{context}\n\n=== QUESTION ===\n{message}"},
             ],
-            max_tokens=2048,
+            max_tokens=1024,
             temperature=0.3,
             stop=["<|im_end|>", "<|endoftext|>"],
         )
         answer = resp.choices[0].message.content.strip()
+        answer = re.sub(r'<think>.*?</think>', '', answer, flags=re.DOTALL).strip()
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
 
