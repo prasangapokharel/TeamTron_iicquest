@@ -32,6 +32,7 @@ import type {
   SignatureItem,
   SignatureSignResponse,
   TxVerifyResponse,
+  SpoofingVerifyResponse,
   VerificationResult,
   WalletTransaction,
 } from "@/types/api";
@@ -196,6 +197,15 @@ export const documentApi = {
     form.append("criteria_id", criteriaId);
     files.forEach((f) => form.append("files", f));
     return request<VerificationResult>("/document/verify", { method: "POST", body: form });
+  },
+  spoofingVerify: (fileA: File, fileB: File) => {
+    const form = new FormData();
+    form.append("file_a", fileA);
+    form.append("file_b", fileB);
+    return request<SpoofingVerifyResponse>("/document/spoofing/verify", {
+      method: "POST",
+      body: form,
+    });
   },
 };
 

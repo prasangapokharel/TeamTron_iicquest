@@ -109,6 +109,18 @@
   API: GET /api/v1/company/me, POST /api/v1/company/update, POST /api/v1/company/logo
   Auth: Yes (JWT)
 
+/settings/spoofing
+  Page: Document Spoofing Check
+  Purpose: Compare Image A (claimed verified doc) vs Image B (presented copy); detect spoofing
+  API: POST /api/v1/document/spoofing/verify (multipart: file_a, file_b)
+  Auth: Yes (JWT or X-Api-Key)
+
+/settings/balance
+  Page: Balance & Top-up
+  Purpose: View credits and top up via eSewa
+  API: GET /api/v1/balance, POST /api/v1/payment/initialize
+  Auth: Yes (JWT)
+
 /settings/api-keys
   Page: API Key Management
   Purpose: View, create, and revoke API keys for programmatic access

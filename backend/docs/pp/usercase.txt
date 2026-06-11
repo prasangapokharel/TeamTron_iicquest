@@ -1,0 +1,87 @@
+VIVADX — IMPACT / USE CASE & FUTURE SCOPE
+Team Tron | IIC Quest
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPACT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Cuts document verification time from 5–15 minutes to under 10 seconds per run
+• Reduces manual staff cost — pay only per verification (1 NPR ≈ 1 credit) instead of full-time review labor
+• Delivers consistent Green / Orange / Red verdicts using the same rules every time, across all branches
+• Flags name mismatches, expired IDs, citizenship conflicts, and cross-document errors before approval
+• Anchors clean (Green) documents on Tron blockchain — public TXID proof auditors and regulators can verify independently
+• Lowers fraud risk — spoofing check catches when a presented copy does not match a previously verified document
+• Supports Nepal’s 106+ BFIs and 11,000+ branches facing stricter NRB KYC and AML compliance (2025)
+• API-first design lets banks integrate into existing loan/KYC systems without replacing core banking software
+• Scales from 1 document to thousands per day without hiring more verification officers
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+USE CASES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BANKS & MICROFINANCE
+• Loan officer uploads citizenship + KYC form + salary slip → instant field extraction and cross-match
+• Detect expired documents, PAN/citizenship mismatches, and low-income flags before disbursement
+• Green verdict signed on-chain; staff shares TronScan link with audit team
+
+MANPOWER AGENCIES
+• Verify worker contracts, agency license, salary, and destination country across multiple papers
+• Catch impossible dates (e.g. payment after deployment) before worker travels abroad
+• Prevent salary/destination fraud that sends workers to wrong country or wrong pay
+
+UNIVERSITIES & CONSULTANCIES
+• Verify degree certificates, transcripts, and admission letters against enrollment criteria
+• Flag fake certificates, GPA below threshold, and student ID mismatches before admission or placement
+
+GOVERNMENT & SUBSIDY PROGRAMS
+• Standardize beneficiary ID and document checks at scale with configurable criteria packs
+• Reduce fake bill and duplicate claim pass-through in manual queues
+
+BANK COUNTER / SPOOFING CHECK
+• Customer claims document was “already verified online”
+• Staff uploads original verified image (Image A) vs customer’s copy (Image B)
+• System alerts if Image A was verified but Image B is different — reject and escalate
+
+B2B / API INTEGRATION
+• Enterprise posts documents via REST API + API key
+• Receives JSON with flags, risk score, verdict, and blockchain hash for core system storage
+
+COMPLIANCE & AUDIT
+• Reviewer opens public TronScan link — confirms verification happened at a specific time with specific field hash
+• No need to trust internal database alone; proof is on-chain and timestamped
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FUTURE SCOPE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SHORT TERM (3–6 months)
+• Add Khalti and Connect IPS alongside eSewa for credit top-up
+• NRB National ID database integration for live identity cross-check
+• Mobile-responsive counter UI for bank branch staff (tablet-first spoofing check)
+• PDF upload support alongside JPG/PNG
+• Bulk verification API for batch loan processing
+
+MEDIUM TERM (6–12 months)
+• On-premise deployment option for banks that cannot send documents to cloud
+• Role-based access — verifier, approver, auditor roles per company
+• Custom criteria builder UI (no JSON editing) for non-technical compliance teams
+• Devanagari OCR accuracy improvements for mixed Nepali/English forms
+• Webhook notifications when verification completes or spoofing is detected
+
+LONG TERM (12+ months)
+• Mainnet Tron deployment for production-grade blockchain proofs
+• Integration with Nepal’s centralized KYC / STR reporting systems (FIU, NRB)
+• Regional expansion — India, Bangladesh manpower and remittance document types
+• Fine-tuned vision model trained on Nepal-specific document layouts (citizenship, PAN, cooperative forms)
+• AI-generated document detection (synthetic/mock-up) enabled in production by default
+• White-label SaaS for cooperatives, insurance, and NGO verification at national scale
+• MCP marketplace — third-party AI agents verify documents through VivadX as a verification layer
+
+SOCIAL IMPACT
+• Safer remittance and overseas employment — fewer workers defrauded by document tampering
+• Faster financial inclusion — quicker KYC means faster account opening for rural customers
+• Trust in digital Nepal — verifiable proof replaces “we checked it on paper”
+• Frees skilled staff from repetitive paperwork to focus on customer service and complex cases

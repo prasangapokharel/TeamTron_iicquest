@@ -296,6 +296,33 @@ export interface Balance {
   balance: number;
 }
 
+// ─── Spoofing check ─────────────────────────────────────────────────────────
+
+export interface SpoofingImageMeta {
+  filename: string;
+  file_hash: string;
+  dimensions: string;
+  file_size: number;
+  phash: string | null;
+  is_verified?: boolean;
+  verified_at?: string | null;
+}
+
+export interface SpoofingComparison {
+  exact_match: boolean;
+  phash_distance: number | null;
+  similarity_percent: number | null;
+  verdict: "IDENTICAL" | "SIMILAR" | "DIFFERENT" | string;
+}
+
+export interface SpoofingVerifyResponse {
+  image_a: SpoofingImageMeta;
+  image_b: SpoofingImageMeta;
+  comparison: SpoofingComparison;
+  spoofing_detected: boolean;
+  message: string;
+}
+
 // ─── Assistant ──────────────────────────────────────────────────────────────
 
 export interface AssistantResponse {

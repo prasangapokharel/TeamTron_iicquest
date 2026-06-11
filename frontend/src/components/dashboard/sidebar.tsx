@@ -14,6 +14,7 @@ import {
   Wallet,
   User,
   LogOut,
+  ShieldAlert,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { SidebarProfile } from "@/components/dashboard/sidebar-profile";
@@ -31,6 +32,7 @@ const NAV = [
 
 const SETTINGS = [
   { href: "/settings/profile", label: "Profile", icon: User },
+  { href: "/settings/spoofing", label: "Spoofing", icon: ShieldAlert },
   { href: "/settings/balance", label: "Balance", icon: Wallet },
   { href: "/settings/api-keys", label: "API Keys", icon: Key },
   { href: "/settings/payments", label: "Payments", icon: CreditCard },
