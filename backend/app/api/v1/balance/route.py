@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from db.config.env import get_db
 from db.models.company import Company
 from db.schemas.balance import BalanceTopUp
-from app.helper.deps import get_current_company
+from app.helper.deps import get_company_from_jwt_or_apikey as get_current_company
 from app.api.v1.balance import service
 
 router = APIRouter(prefix="/balance", tags=["balance"])

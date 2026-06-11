@@ -7,7 +7,8 @@
   "variable": [
     { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
     { "key": "token", "value": "", "type": "string" },
-    { "key": "company_id", "value": "", "type": "string" }
+    { "key": "company_id", "value": "", "type": "string" },
+    { "key": "api_key", "value": "", "type": "string", "description": "Generated via POST /api/v1/apikey. Use in X-Api-Key header as alternative to Bearer token." }
   ],
   "item": [
     {
@@ -543,8 +544,8 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Use JWT or omit if using X-API-Key" },
-              { "key": "X-API-Key", "value": "replace-with-api-key", "disabled": true, "description": "Alternative to Bearer token" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "description": "JWT auth — use this OR X-Api-Key, not both" },
+              { "key": "X-Api-Key", "value": "{{api_key}}", "disabled": true, "description": "API key auth — enable this and disable Authorization header for server-to-server calls" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "url": { "raw": "{{base_url}}/api/v1/verify", "host": ["{{base_url}}"], "path": ["api", "v1", "verify"] },
@@ -560,8 +561,8 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Use JWT or omit if using X-API-Key" },
-              { "key": "X-API-Key", "value": "replace-with-api-key", "disabled": true, "description": "Alternative to Bearer token" }
+              { "key": "Authorization", "value": "Bearer {{token}}", "description": "JWT auth — use this OR X-Api-Key, not both" },
+              { "key": "X-Api-Key", "value": "{{api_key}}", "disabled": true, "description": "API key auth — enable this and disable Authorization header for server-to-server calls" }
             ],
             "url": { "raw": "{{base_url}}/api/v1/verify/upload", "host": ["{{base_url}}"], "path": ["api", "v1", "verify", "upload"] },
             "body": {

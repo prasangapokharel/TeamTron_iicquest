@@ -877,9 +877,85 @@ APPENDIX: QUICK REFERENCE — ALL ENDPOINTS
   DELETE  /api/v1/apikey/:id               JWT    Revoke API key
   POST    /api/v1/assistant/chat            JWT/K  AI assistant chat
 
-  JWT = Bearer token required
-  K   = Also accepts X-API-Key header
-  no  = No auth required
+  JWT   = Bearer token required
+  JWT/K = Accepts both JWT and X-Api-Key header
+  no    = No auth required
+
+---
+API KEY VERIFICATION FLOW
+=========================
+
+Overview
+--------
+Companies can call the verify endpoint directly using an API key instead of
+a JWT token. This is the recommended approach for server-to-server integrations
+(e.g., your backend calls VIVAD X to verify documents without maintaining a
+login session).
+
+Endpoints that accept X-Api-Key:
+  POST  /api/v1/verify
+  POST  /api/v1/verify/upload
+  GET   /api/v1/balance
+
+Step 1 — Generate an API key (one time, via JWT)
+-------------------------------------------------
+POST /api/v1/apikey
+Authorization: Bearer <jwt_token>
+
+Response:
+{
+  "id": "uuid",
+  "apikey": "your-secret-api-key-here",
+  "status": "active"
+}
+
+Store the apikey securely (env variable, secrets manager). Do NOT expose it
+in frontend JavaScript.
+
+Step 2 — Use the API key to verify documents (no JWT needed)
+------------------------------------------------------------
+Option A — JSON paths (documents already uploaded):
+
+  curl -X POST http://localhost:8000/api/v1/verify \
+    -H "X-Api-Key: your-secret-api-key-here" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "paths": ["uploads/company-id/doc1.jpg"],
+      "criteria_id": "your-criteria-enroll-id"
+    }'
+
+Option B — Upload images directly:
+
+  curl -X POST http://localhost:8000/api/v1/verify/upload \
+    -H "X-Api-Key: your-secret-api-key-here" \
+    -F "criteria_id=your-criteria-enroll-id" \
+    -F "files=@/path/to/document.jpg"
+
+Step 3 — Check balance via API key
+-----------------------------------
+  curl http://localhost:8000/api/v1/balance \
+    -H "X-Api-Key: your-secret-api-key-here"
+
+Response:
+  { "balance": 950, "company_id": "uuid" }
+
+If balance < plan cost per verification (50 credits), the verify call returns:
+  HTTP 402 { "detail": "Insufficient balance" }
+
+Step 4 — Revoke a key (via JWT)
+--------------------------------
+  curl -X DELETE http://localhost:8000/api/v1/apikey/<key-id> \
+    -H "Authorization: Bearer <jwt_token>"
+
+After revocation, any request with that key returns:
+  HTTP 401 { "detail": "Invalid or revoked API key" }
+
+Security Rules
+--------------
+  - Never embed API keys in frontend/browser code
+  - Rotate keys regularly using generate + revoke
+  - One key per integration/service is recommended
+  - Keys are permanent until explicitly revoked; protect them like passwords
 
 ---
 End of VIVAD X Frontend Developer Workflow Guide
