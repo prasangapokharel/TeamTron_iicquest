@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Copy, Check, ArrowUpRight } from "lucide-react";
 import { API_BASE, API_ORIGIN } from "@/lib/config";
 import { DEFAULT_VERIFY_COST_CREDITS } from "@/lib/pricing";
+import { PLATFORM_NAME } from "@/lib/brand";
 import type { CriteriaEnroll } from "@/types/api";
 
 function CodeBlock({ code, label }: { code: string; label?: string }) {
@@ -142,7 +143,7 @@ const data = await res.json();`;
       <div className="api-docs-intro">
         <h2 className="settings-section-title">Integration guide</h2>
         <p className="settings-section-desc">
-          Step-by-step flow for server-to-server document verification via the VivadX REST API.
+          Step-by-step flow for server-to-server document verification via the {PLATFORM_NAME} REST API.
           Base URL: <code>{API_ORIGIN}</code>
         </p>
       </div>

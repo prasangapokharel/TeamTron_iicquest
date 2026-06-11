@@ -1,4 +1,12 @@
 import json
+import os
+
+def synthetic_enabled() -> bool:
+    return os.getenv("SYNTHETIC", "False").lower() == "true"
+
+
+def _synthetic_enabled() -> bool:
+    return synthetic_enabled()
 
 
 def _severity_marker(severity: str) -> str:
@@ -63,7 +71,14 @@ def build_extraction_prompt(criteria_data: dict) -> str:
         field_lines.append(f"  {marker} | {field}{hint_str}")
 
     type_hints = _field_type_hints(fields)
+    synthetic_hints = ""
     example = {f: "extracted value or null" for f in fields}
+    if _synthetic_enabled():
+        example = {"is_synthetic": "true or false", **example}
+        synthetic_hints = (
+            "\n- FIRST assess is_synthetic: true if the image is AI-generated, digitally rendered, a mock-up, composite, or manipulated — not a real photograph/scan of a physical document."
+            "\n- If is_synthetic is true, set every other field to null."
+        )
 
     return f"""You are a precision document OCR and verification engine for **{name}** ({category} verification) in Nepal.
 
@@ -75,7 +90,7 @@ Examine the document image carefully and extract every field listed below.
 === EXTRACTION RULES ===
 - Extract the EXACT text as printed. Do not interpret, infer, or guess.
 - If a field is not visible, missing, or illegible: use null.
-{chr(10).join(type_hints)}
+{chr(10).join(type_hints)}{synthetic_hints}
 - 🔴 CRITICAL fields require maximum precision — they are used for fraud detection.
 - 🟠 IMPORTANT fields affect the verification score.
 

@@ -8,10 +8,11 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { documentApi } from "@/lib/api";
 import { formatApiError, isNotFound } from "@/lib/errors";
 import type { DocumentDetail, VerificationResult } from "@/types/api";
+import { normalizeVerificationResult } from "@/lib/verification-result";
 import { ResultPanel } from "@/components/verify/result-panel";
+import { ResultSummary } from "@/components/verify/result-summary";
+import { ResultIssuesSummary } from "@/components/verify/result-issues-summary";
 import { UploadedDocumentsGallery } from "@/components/documents/uploaded-documents-gallery";
-import { VerdictBadge } from "@/components/verify/verdict-badge";
-import { formatCategoryLabel } from "@/lib/format";
 
 export default function DocumentResultPage() {
   const { enrollId } = useParams<{ enrollId: string }>();
@@ -46,7 +47,11 @@ export default function DocumentResultPage() {
       });
   }, [enrollId]);
 
-  const display = result ?? (detail as VerificationResult | null);
+  const display = result
+    ? normalizeVerificationResult(result)
+    : detail
+      ? normalizeVerificationResult(detail)
+      : null;
 
   return (
     <div className="dash-content dash-content--saas">
@@ -90,50 +95,19 @@ export default function DocumentResultPage() {
 
       {display && (
         <section className="dash-board result-board" aria-label="Verification result">
-          <div className="result-board-summary">
-            <div>
-              <p className="settings-aside-title">Verdict</p>
-              <VerdictBadge verdict={display.verdict} />
-            </div>
-            <div>
-              <p className="settings-aside-title">Risk score</p>
-              <p className="balance-metric-value">{display.risk_score ?? "n/a"}</p>
-            </div>
-            <div>
-              <p className="settings-aside-title">Status</p>
-              <p className="text-sm">{display.status ?? "n/a"}</p>
-            </div>
-            {(result?.criteria?.category ?? detail?.criteria_category) && (
-              <div>
-                <p className="settings-aside-title">Category</p>
-                <span className="criteria-chip criteria-chip--category">
-                  {formatCategoryLabel(
-                    result?.criteria?.category ?? detail?.criteria_category,
-                  )}
-                </span>
-              </div>
-            )}
-            {result?.criteria?.name && (
-              <div>
-                <p className="settings-aside-title">Criteria</p>
-                <p className="text-sm">{result.criteria.name}</p>
-              </div>
-            )}
-            <div>
-              <p className="settings-aside-title">On-chain</p>
-              <p className="text-sm">{display.tron_signed ? "Signed" : "Not signed"}</p>
-            </div>
-          </div>
+          <ResultSummary result={display} layout="grid" />
+
+          <ResultIssuesSummary result={display} />
 
           {result && (
             <div className="result-board-body">
-              <ResultPanel result={result} />
+              <ResultPanel result={result} hideSummary galleryVariant="large" />
             </div>
           )}
 
           {!result && detail && enrollId && detail.paths.length > 0 && (
             <div className="result-board-body">
-              <UploadedDocumentsGallery enrollId={enrollId} paths={detail.paths} />
+              <UploadedDocumentsGallery enrollId={enrollId} paths={detail.paths} variant="large" />
             </div>
           )}
         </section>

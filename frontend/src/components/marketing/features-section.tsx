@@ -13,6 +13,7 @@ import {
   BarChart3,
   type LucideIcon,
 } from "lucide-react";
+import { PLATFORM_NAME } from "@/lib/brand";
 import { MarketingContainer } from "./marketing-shell";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -92,7 +93,7 @@ export function FeaturesSection() {
           <p className="section-eyebrow">Features</p>
           <h2 className="section-title">Everything you need to verify at scale</h2>
           <p className="section-desc">
-            VivadX saves 50–70% staff cost while giving auditors the proof they demand.
+            {PLATFORM_NAME} saves 50–70% staff cost while giving auditors the proof they demand.
           </p>
         </div>
 

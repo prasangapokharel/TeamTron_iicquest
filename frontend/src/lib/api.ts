@@ -1,5 +1,6 @@
 /**
- * VivadX API client — mirrors backend/docs/frontend/postman/Apilist.json
+ * VivadX API client — mirrors backend/docs/frontend/postman/Apilist.json.
+ * Platform brand: @/lib/brand (PLATFORM_NAME).
  */
 import { clearAuth, getToken } from "./auth";
 import { API_BASE, API_ORIGIN } from "./config";

@@ -2,8 +2,10 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Send, Bot, User, Loader2, Trash2, Copy, Check, RotateCcw } from "lucide-react";
+import { Send, User, Loader2, Trash2, Copy, Check, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { VivaAiIcon } from "@/components/ui/viva-ai-icon";
+import { BRAND_NAME } from "@/lib/brand";
 import { assistantApi, documentApi } from "@/lib/api";
 import { formatApiError, isServerError } from "@/lib/errors";
 
@@ -129,8 +131,8 @@ function AssistantChat() {
   return (
     <div className="dash-content dash-content--saas">
       <PageHeader
-        title="Assistant"
-        description="POST /assistant/chat — answers from your live verification data"
+        title={`${BRAND_NAME} Assistant`}
+        description="Answers from your live verification data"
         actions={
           messages.length > 0 ? (
             <button type="button" className="dash-btn dash-btn--ghost" onClick={clearChat}>
@@ -155,8 +157,8 @@ function AssistantChat() {
             )}
             {hydrated && messages.length === 0 && (
               <div className="chat-empty">
-                <Bot size={28} className="text-[var(--primary)]" />
-                <p>Ask about verifications, risk scores, or blockchain proofs.</p>
+                <VivaAiIcon size={48} />
+                <p>Ask {BRAND_NAME} about verifications, risk scores, or blockchain proofs.</p>
                 <div className="chat-suggestions">
                   {SUGGESTED.map((q) => (
                     <button
@@ -173,7 +175,7 @@ function AssistantChat() {
             )}
             {messages.map((m, i) => (
               <div key={i} className={`chat-bubble chat-bubble-${m.role}`}>
-                {m.role === "assistant" ? <Bot size={16} /> : <User size={16} />}
+                {m.role === "assistant" ? <VivaAiIcon size={24} /> : <User size={16} className="shrink-0" />}
                 <div>
                   <p className="whitespace-pre-wrap">{m.content}</p>
                   {m.vectorless && (
@@ -199,8 +201,11 @@ function AssistantChat() {
             ))}
             {loading && (
               <div className="chat-bubble chat-bubble-assistant">
-                <Loader2 size={16} className="animate-spin" />
-                <span>Thinking…</span>
+                <VivaAiIcon size={24} />
+                <span className="flex items-center gap-2">
+                  <Loader2 size={14} className="animate-spin" />
+                  Thinking…
+                </span>
               </div>
             )}
           </div>

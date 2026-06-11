@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { Copy, Terminal } from "lucide-react";
+import { PLATFORM_NAME } from "@/lib/brand";
 import { MarketingContainer } from "./marketing-shell";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -60,7 +61,7 @@ export function ApiSection() {
               <Terminal size={14} />
               <span>Enterprise API</span>
             </div>
-            <h2 className="section-title">Integrate VivadX into your workflow</h2>
+            <h2 className="section-title">Integrate {PLATFORM_NAME} into your workflow</h2>
             <p className="section-desc mt-3">
               Banks and large enterprises can send documents programmatically and receive
               structured JSON with flags, risk scores, and Tron hashes.

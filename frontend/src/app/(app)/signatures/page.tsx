@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Link2 } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { TronScanLink } from "@/components/verify/tron-scan-link";
 import { signatureApi } from "@/lib/api";
 import { formatApiError } from "@/lib/errors";
 import type { SignatureItem } from "@/types/api";
@@ -84,9 +84,7 @@ export default function SignaturesPage() {
                       </td>
                       <td><code className="settings-id">{s.to_address.slice(0, 10)}…</code></td>
                       <td className="dash-table-action">
-                        <a href={s.verify_url} target="_blank" rel="noopener noreferrer" aria-label="TronScan">
-                          <Link2 size={14} />
-                        </a>
+                        <TronScanLink url={s.verify_url} label="View" compact />
                       </td>
                     </tr>
                   ))}

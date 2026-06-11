@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import {
+  PLATFORM_DESCRIPTION,
+  PLATFORM_NAME,
+  PLATFORM_TAGLINE,
+} from "@/lib/brand";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,16 +20,15 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VivadX | Smart Document Reconciliation & Verification",
-  description:
-    "Upload documents, AI flags risks in seconds, and anchor verified fields on Tron blockchain. Built for banks, manpower agencies, and consultancies.",
+  title: `${PLATFORM_NAME} | ${PLATFORM_TAGLINE}`,
+  description: PLATFORM_DESCRIPTION,
   keywords: [
     "document verification",
     "KYC",
     "blockchain",
     "Tron",
     "fraud detection",
-    "VivadX",
+    PLATFORM_NAME,
   ],
 };
 

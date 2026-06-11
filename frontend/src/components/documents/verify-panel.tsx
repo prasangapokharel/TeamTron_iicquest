@@ -91,6 +91,11 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
       const res = await verifyApi.upload(criteriaId, files);
       onVerified?.(res);
       reset();
+      const enrollId = res.document_enroll_id ?? res.enroll_id;
+      if (enrollId) {
+        router.push(`/documents/${enrollId}/result`);
+        return;
+      }
       if (res.balance_remaining !== undefined) {
         setBalance(res.balance_remaining);
       } else {

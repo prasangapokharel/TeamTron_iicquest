@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PLATFORM_MARK, PLATFORM_NAME, PLATFORM_WORD } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 export function Logo({
@@ -22,11 +23,11 @@ export function Logo({
     <Link
       href={href}
       className={cn("flex items-center group shrink-0", className)}
-      aria-label="VivadX home"
+      aria-label={`${PLATFORM_NAME} home`}
     >
       <span className={cn("font-semibold tracking-tight leading-none", s.text)}>
-        <span className="text-[var(--text)]">Vivad</span>
-        <span className="text-[var(--primary)]">X</span>
+        <span className="text-[var(--text)]">{PLATFORM_WORD}</span>
+        <span className="text-[var(--primary)]">{PLATFORM_MARK}</span>
       </span>
     </Link>
   );

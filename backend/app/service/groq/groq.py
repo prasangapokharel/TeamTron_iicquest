@@ -63,8 +63,43 @@ def _image_content(path: str) -> dict:
     return {"url": f"data:{mime};base64,{_encode_image(path)}"}
 
 
+def _check_synthetic(path: str) -> bool:
+    try:
+        completion = _call_with_fallback(
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Is this a real photograph or scan of a physical paper document, "
+                                "or an AI-generated / synthetic / digital mock-up? "
+                                'Return ONLY JSON: {"is_synthetic": true} or {"is_synthetic": false}'
+                            ),
+                        },
+                        {"type": "image_url", "image_url": _image_content(path)},
+                    ],
+                }
+            ],
+            model=MODEL,
+            temperature=0,
+            max_completion_tokens=64,
+            response_format={"type": "json_object"},
+        )
+        data = json.loads(completion.choices[0].message.content)
+        return _is_truthy(data.get("is_synthetic"))
+    except Exception:
+        return False
+
+
 def _extract_single(path: str, criteria_data: dict) -> dict[str, Any]:
-    from app.core.prompts.base import build_extraction_prompt
+    from app.core.prompts.base import build_extraction_prompt, _synthetic_enabled
+
+    fields = criteria_data.get("fields", [])
+    if _synthetic_enabled() and _check_synthetic(path):
+        return {"is_synthetic": True, **{f: None for f in fields}}
+
     prompt = build_extraction_prompt(criteria_data)
     try:
         completion = _call_with_fallback(
@@ -83,7 +118,10 @@ def _extract_single(path: str, criteria_data: dict) -> dict[str, Any]:
             response_format={"type": "json_object"},
         )
         text = completion.choices[0].message.content
-        return json.loads(text)
+        data = json.loads(text)
+        if not _synthetic_enabled():
+            data.pop("is_synthetic", None)
+        return data
     except Exception as e:
         return {"_error": str(e), "_path": path}
 
@@ -98,17 +136,38 @@ def extract_parallel(paths: list[str], criteria_data: dict) -> list[dict]:
     return results
 
 
-def merge_extractions(results: list[dict], fields: list[str]) -> dict:
+def _is_truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("true", "1", "yes")
+    return False
+
+
+def merge_extractions(
+    results: list[dict],
+    fields: list[str],
+    *,
+    synthetic_check: bool = False,
+) -> dict:
     """
     Merge field extractions from multiple document images.
     First non-null value wins per field; value disagreements are recorded as conflicts.
+    Synthetic images are excluded from the merge when synthetic_check is enabled.
     """
     merged: dict[str, Any] = {}
     conflicts: dict[str, list] = {}
+    is_synthetic = False
+    synthetic_count = 0
 
     for r in results:
         extracted = r.get("extracted", {})
         if "_error" in extracted:
+            continue
+        doc_synthetic = synthetic_check and _is_truthy(extracted.get("is_synthetic"))
+        if doc_synthetic:
+            is_synthetic = True
+            synthetic_count += 1
             continue
         for field in fields:
             value = extracted.get(field)
@@ -121,4 +180,10 @@ def merge_extractions(results: list[dict], fields: list[str]) -> dict:
                 if value not in conflicts[field]:
                     conflicts[field].append(value)
 
-    return {"fields": merged, "conflicts": conflicts}
+    return {
+        "fields": merged,
+        "conflicts": conflicts,
+        "is_synthetic": is_synthetic,
+        "synthetic_count": synthetic_count,
+        "total_documents": len(results),
+    }

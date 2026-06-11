@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Github, X } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import { PLATFORM_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { MarketingAnchorLink } from "./marketing-anchor-link";
 import {
@@ -292,7 +293,7 @@ export function MarketingFooter() {
         </div>
 
         <div className="footer-bottom">
-          <p className="footer-copy">© {year} VivadX. All rights reserved.</p>
+          <p className="footer-copy">© {year} {PLATFORM_NAME}. All rights reserved.</p>
           <p className="footer-meta">
             Verification proofs secured on Tron Network
           </p>

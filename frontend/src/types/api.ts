@@ -162,6 +162,18 @@ export interface VerificationFlag {
   message?: string;
 }
 
+export interface DocumentResult {
+  index: number;
+  path: string;
+  is_synthetic?: boolean;
+  extracted_fields?: Record<string, string | null>;
+  flags?: VerificationFlag[];
+  risk_score?: number;
+  verdict?: string;
+  suggestions?: string[];
+  error?: string;
+}
+
 export interface VerificationResult {
   enroll_id?: string;
   document_enroll_id?: string;
@@ -176,6 +188,9 @@ export interface VerificationResult {
   suggestions?: string[];
   risk_score?: number;
   verdict?: string;
+  is_synthetic?: boolean;
+  synthetic_count?: number;
+  documents?: DocumentResult[];
   tron_signed?: boolean;
   txid?: string;
   to_address?: string;

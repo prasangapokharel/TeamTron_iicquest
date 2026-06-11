@@ -117,6 +117,38 @@ def get_document(db: Session, company_id: str, enroll_id: str) -> dict:
     }
 
 
+def _sanitize_stored_result(result: dict) -> dict:
+    from app.core.prompts.base import synthetic_enabled
+
+    if synthetic_enabled():
+        return result
+    out = dict(result)
+    out["is_synthetic"] = False
+    out["synthetic_count"] = 0
+    out["flags"] = [
+        f for f in out.get("flags") or []
+        if not (f.get("field") == "image" and f.get("value") == "synthetic")
+    ]
+    out["suggestions"] = [
+        s for s in out.get("suggestions") or []
+        if "synthetic" not in s.lower()
+    ]
+    docs = []
+    for doc in out.get("documents") or []:
+        d = dict(doc)
+        if d.get("is_synthetic"):
+            d = {**d, "is_synthetic": False}
+            d["flags"] = [f for f in d.get("flags") or [] if f.get("field") != "image"]
+            d["suggestions"] = [
+                s for s in d.get("suggestions") or []
+                if "synthetic" not in s.lower()
+            ]
+        docs.append(d)
+    if docs:
+        out["documents"] = docs
+    return out
+
+
 def get_result(db: Session, company_id: str, enroll_id: str) -> dict:
     enroll = read(db, DocumentEnroll, id=enroll_id, company_id=company_id)
     if not enroll:
@@ -125,28 +157,29 @@ def get_result(db: Session, company_id: str, enroll_id: str) -> dict:
         raise HTTPException(status_code=404, detail="No result yet — document has not been verified")
     doc = read(db, Document, id=enroll.document_id)
     sig = read(db, Signature, document_enroll_id=enroll.id)
-    r = enroll.result
-    return {
+    stored = dict(enroll.result)
+    result = {
+        **stored,
         "enroll_id": str(enroll.id),
-        "document_id": str(doc.id) if doc else None,
-        "paths": doc.multipaths if doc else [],
+        "document_enroll_id": str(enroll.id),
+        "document_id": str(doc.id) if doc else stored.get("document_id"),
+        "paths": doc.multipaths if doc else stored.get("paths", []),
         "status": enroll.status,
-        "criteria": r.get("criteria"),
-        "extracted_fields": r.get("extracted_fields"),
-        "conflicts": r.get("conflicts"),
-        "flags": r.get("flags"),
-        "suggestions": r.get("suggestions", []),
-        "risk_score": r.get("risk_score"),
-        "verdict": r.get("verdict"),
-        "tron_signed": r.get("tron_signed", False),
-        "signature": {
+    }
+    if sig:
+        sig_block = {
             "id": str(sig.id),
             "hash": sig.hash,
             "txid": sig.txid,
             "to_address": sig.to_address,
             "verify_url": f"https://nile.tronscan.org/#/transaction/{sig.txid}",
-        } if sig else None,
-    }
+        }
+        result["signature"] = sig_block
+        result.setdefault("hash", sig.hash)
+        result.setdefault("txid", sig.txid)
+        result.setdefault("to_address", sig.to_address)
+        result.setdefault("verify_url", sig_block["verify_url"])
+    return _sanitize_stored_result(result)
 
 
 def verify_uploaded_documents(

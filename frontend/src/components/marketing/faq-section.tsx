@@ -6,13 +6,14 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { PLATFORM_NAME } from "@/lib/brand";
 import { MarketingContainer } from "./marketing-shell";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const FAQ_ITEMS = [
   {
-    q: "What documents can VivadX verify?",
+    q: `What documents can ${PLATFORM_NAME} verify?`,
     a: "PDFs and images work: passports, citizenship, licenses, invoices, contracts, and more. Upload 2 to 5 files per run.",
   },
   {
@@ -28,7 +29,7 @@ const FAQ_ITEMS = [
     a: "Yes. POST documents to /api/v1/verify and you get JSON with field flags, a 0-100 risk score, and the Tron hash for your core system.",
   },
   {
-    q: "What industries does VivadX support?",
+    q: `What industries does ${PLATFORM_NAME} support?`,
     a: "Banks, manpower agencies, consultancies, insurance, and similar teams. Pick a category pack or choose fields yourself.",
   },
   {
@@ -127,7 +128,7 @@ export function FaqSection() {
             <p className="section-eyebrow">FAQ</p>
             <h2 className="faq-title">Common questions</h2>
             <p className="faq-aside-desc">
-              Everything you need to know about VivadX document verification.
+              Everything you need to know about {PLATFORM_NAME} document verification.
               Need more help?{" "}
               <a href="mailto:hello@vivadx.io">Contact us</a>.
             </p>

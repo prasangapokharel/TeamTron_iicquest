@@ -9,6 +9,7 @@ import { FeaturesSection } from "./features-section";
 import { MetricsSection } from "./metrics-section";
 import { ApiSection } from "./api-section";
 import { FaqSection } from "./faq-section";
+import { PLATFORM_NAME } from "@/lib/brand";
 
 export function LandingPage() {
   return (
@@ -24,7 +25,7 @@ export function LandingPage() {
       <section className="marketing-section marketing-section-last">
         <MarketingContainer className="narrow">
           <div className="cta-banner">
-            <h2 className="section-title">Ready to verify smarter with VivadX?</h2>
+            <h2 className="section-title">Ready to verify smarter with {PLATFORM_NAME}?</h2>
             <p className="section-desc">
               Join banks and agencies replacing hours of manual checks with seconds of AI verification.
             </p>

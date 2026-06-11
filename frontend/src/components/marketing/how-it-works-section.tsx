@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { Upload, Brain, Link2, Archive } from "lucide-react";
+import { PLATFORM_NAME } from "@/lib/brand";
 import { MarketingContainer } from "./marketing-shell";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -20,7 +21,7 @@ const STEPS = [
     icon: Brain,
     step: "02",
     title: "AI analyzes & flags",
-    desc: "VivadX extracts fields dynamically and marks each Red, Orange, or Green with a risk score.",
+    desc: `${PLATFORM_NAME} extracts fields dynamically and marks each Red, Orange, or Green with a risk score.`,
   },
   {
     icon: Link2,
