@@ -1,0 +1,133 @@
+VIVAD X — MCP Server Connection Guide
+======================================
+
+VIVAD X exposes an MCP server that lets any MCP-compatible AI client (Cursor,
+Claude Desktop, etc.) call your document verification platform as native tools.
+
+
+=== PREREQUISITES ===
+
+1. VIVAD X backend is running locally (or on a known host).
+2. Python virtual environment is set up inside the backend folder.
+3. You have a company API key (generated via the dashboard or CLI — see Step 2).
+4. The MCP server entry point is: backend/mcp_server.py
+
+
+=== STEP 1: Start the backend ===
+
+    cd /home/prasanga/TeamTron_iicquest/backend
+    uvicorn main:app --host 127.0.0.1 --port 8000
+
+Leave this terminal running. The backend must be reachable at
+http://localhost:8000 before the MCP server can connect.
+
+
+=== STEP 2: Generate an API key ===
+
+You need a company account first. Register once, then log in to get a JWT,
+then generate a long-lived API key.
+
+    # 1. Register (skip if already done)
+    curl -s -X POST http://localhost:8000/api/v1/auth/register \
+      -H "Content-Type: application/json" \
+      -d '{"company_name":"My Company","email":"me@example.com","password":"secret123"}'
+
+    # 2. Log in and capture the JWT
+    curl -s -X POST http://localhost:8000/api/v1/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{"email":"me@example.com","password":"secret123"}'
+
+    # Response includes: { "access_token": "eyJ..." }
+
+    # 3. Generate the API key
+    curl -s -X POST http://localhost:8000/api/v1/apikey \
+      -H "Authorization: Bearer <access_token_from_step_2>"
+
+    # Response includes: { "apikey": "your-secret-key-here", "status": "active" }
+
+Store the apikey value. You will paste it into the Cursor config below.
+Never expose it in browser-side JavaScript.
+
+
+=== STEP 3: Add VIVAD X to Cursor MCP settings ===
+
+Open Cursor → Settings → MCP Servers, then paste the following JSON.
+Replace the two placeholder values with your real paths and key.
+
+    {
+      "mcpServers": {
+        "vivad-x": {
+          "command": "/home/prasanga/TeamTron_iicquest/backend/.venv/bin/python",
+          "args": ["/home/prasanga/TeamTron_iicquest/backend/mcp_server.py"],
+          "env": {
+            "VIVAD_BASE_URL": "http://localhost:8000",
+            "VIVAD_API_KEY": "your-company-api-key"
+          }
+        }
+      }
+    }
+
+- command   : absolute path to the Python binary inside the .venv
+- args[0]   : absolute path to mcp_server.py in the backend folder
+- VIVAD_BASE_URL : change to your deployed URL if not running locally
+- VIVAD_API_KEY  : the key you copied in Step 2
+
+Save the settings and restart Cursor. The vivad-x server should appear as
+"connected" in the MCP panel.
+
+
+=== STEP 4: Available tools ===
+
+Once connected, these 6 tools are callable by any AI in Cursor:
+
+    get_dashboard()
+        Returns company stats: total verified, failed, pending documents,
+        blockchain signatures, balance, and total spend.
+
+    get_balance()
+        Returns the company's current credit balance (1 credit = 1 NPR).
+
+    list_criteria()
+        Returns all criteria enrolled for the company, including field
+        definitions and validation rules.
+
+    get_verification_history(limit)
+        Returns recent document verifications with verdict, risk score,
+        and Tron blockchain transaction ID. Default limit: 10.
+
+    ask_assistant(question)
+        Sends a question to the fine-tuned VIVAD AI assistant and returns
+        a real-time answer based on live company data.
+
+    verify_document(image_paths, criteria_enroll_id)
+        Runs a full AI verification against already-uploaded document images.
+        image_paths: comma-separated server-side file paths.
+        Returns verdict (Green/Orange/Red), extracted fields, risk score,
+        and blockchain txid if the document passes.
+
+
+=== TROUBLESHOOTING ===
+
+MCP server shows "disconnected" in Cursor
+    - Confirm the backend is running: curl http://localhost:8000/health
+    - Check that the .venv path is correct. Run:
+        ls /home/prasanga/TeamTron_iicquest/backend/.venv/bin/python
+    - Check that mcp_server.py exists at the path in args[0].
+
+Error: Invalid or revoked API key
+    - The VIVAD_API_KEY in the config is wrong or has been revoked.
+    - Generate a new key via POST /api/v1/apikey and update the config.
+
+Error: Insufficient balance
+    - The company account has 0 credits.
+    - Top up via the dashboard (/settings/balance) using eSewa.
+
+Python import errors on startup
+    - Make sure you are pointing to the .venv Python, not the system Python.
+    - Run: /home/prasanga/TeamTron_iicquest/backend/.venv/bin/pip install -e .
+      from the backend folder to ensure all dependencies are installed.
+
+Tool returns HTTP 502
+    - The AI assistant (Together AI) is temporarily unavailable.
+    - All other tools (dashboard, balance, criteria, history) still work.
+    - Retry the ask_assistant call after a few seconds.
