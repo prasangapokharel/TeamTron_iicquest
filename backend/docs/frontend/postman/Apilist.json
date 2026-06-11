@@ -341,6 +341,25 @@
               ]
             }
           }
+        },
+        {
+          "name": "Spoofing Verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "description": "JWT auth — use this OR X-Api-Key, not both" },
+              { "key": "X-Api-Key", "value": "{{api_key}}", "disabled": true, "description": "API key auth — enable this and disable Authorization header for server-to-server calls" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/document/spoofing/verify", "host": ["{{base_url}}"], "path": ["api", "v1", "document", "spoofing", "verify"] },
+            "description": "Compare Image A vs Image B to detect spoofing. Image A is the claimed verified document; Image B is the document being presented. Returns metadata (hash, dimensions, phash), comparison verdict (IDENTICAL/SIMILAR/DIFFERENT), and spoofing_detected when Image A was previously verified but Image B differs.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file_a", "type": "file", "src": "/path/to/verified-document.png", "description": "Claimed verified document (Image A)" },
+                { "key": "file_b", "type": "file", "src": "/path/to/presented-document.png", "description": "Document being presented (Image B)" }
+              ]
+            }
+          }
         }
       ]
     },
