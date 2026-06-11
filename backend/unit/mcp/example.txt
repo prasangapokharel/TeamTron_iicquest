@@ -1,40 +1,49 @@
 VIVAD X — MCP Server Connection Guide
 ======================================
 
-The MCP server exposes 6 tools from the VIVAD X backend to any MCP-compatible client (Cursor IDE, Claude Desktop, etc.).
+How to connect VIVAD X to Cursor (or any MCP client):
 
-TOOLS
------
-  get_dashboard(api_key)                        — Company stats: verified, failed, review, pending, balance
-  get_balance(api_key)                          — Current credit balance
-  list_criteria(api_key)                        — Enrolled criteria with fields and rules
-  get_verification_history(api_key, limit=10)   — Recent document verifications
-  ask_assistant(api_key, question)              — VIVAD AI assistant with live DB context
-  verify_document(api_key, image_paths, criteria_id) — Run full document verification pipeline
+STEP 1 — Start the VIVAD X backend
+------------------------------------
+  cd backend && uvicorn main:app --host 127.0.0.1 --port 8000
 
-CONNECT TO CURSOR IDE
----------------------
-1. Open Cursor Settings → MCP Servers
-2. Add a new server and paste the contents of unit/mcp/cursor_config.json
-3. Save and reload
+STEP 2 — Get your company API key
+-----------------------------------
+  1. Login via POST /api/v1/auth/login
+  2. Generate a key via POST /api/v1/apikey (Authorization: Bearer <token>)
+  3. Copy the returned "apikey" value
 
-The config uses the venv Python at:
-  /home/prasanga/TeamTron_iicquest/backend/.venv/bin/python
+STEP 3 — Add to Cursor MCP Settings
+--------------------------------------
+  Cursor → Settings → MCP Servers → paste:
 
-And runs:
-  /home/prasanga/TeamTron_iicquest/backend/mcp_server.py
+  {
+    "mcpServers": {
+      "vivad-x": {
+        "command": "/path/to/backend/.venv/bin/python",
+        "args": ["/path/to/backend/mcp_server.py"],
+        "env": {
+          "VIVAD_BASE_URL": "http://localhost:8000",
+          "VIVAD_API_KEY": "your-company-api-key"
+        }
+      }
+    }
+  }
 
-AUTH
-----
-All tools require an api_key parameter.
-Generate one from the VIVAD X dashboard or via POST /api/v1/apikey/
+  Replace /path/to/backend with the real absolute path.
+  Replace your-company-api-key with the key from Step 2.
 
-START MANUALLY
---------------
-  cd /home/prasanga/TeamTron_iicquest/backend
-  source .venv/bin/activate
-  python mcp_server.py
+AVAILABLE TOOLS
+----------------
+  get_dashboard()                              — Company stats
+  get_balance()                                — Credit balance
+  list_criteria()                              — Enrolled criteria
+  get_verification_history(limit)              — Recent verifications
+  ask_assistant(question)                      — VIVAD AI chat
+  verify_document(image_paths, criteria_id)    — Run verification
 
-RUN TESTS
+SECURITY
 ---------
-  python unit/mcp/test_mcp.py
+  - Only your company API key is needed
+  - No server secrets, DB passwords, or Groq keys required
+  - Revoke the key anytime via DELETE /api/v1/apikey/:id
