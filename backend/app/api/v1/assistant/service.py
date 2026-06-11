@@ -7,8 +7,8 @@ from together import Together
 from app.core.vectorless.context import build_context
 from app.service.groq.groq import _call_with_fallback
 
-FINETUNED_MODEL = "incpractical_b3ab/Qwen3-8B-Vivad-b073dc2a-4f79c591"
-FALLBACK_MODEL = "llama-3.3-70b-versatile"
+TOGETHER_MODEL = os.getenv("TOGETHER_MODEL", "incpractical_b3ab/Qwen3-8B-Vivad-b073dc2a-4f79c591")
+GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile"
 
 SYSTEM_PROMPT = (
     "You are VIVAD, the intelligent AI assistant for the VIVAD X platform — "
@@ -21,10 +21,12 @@ SYSTEM_PROMPT = (
 
 _together = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
+_TOGETHER_ERRORS = ("dedicated_endpoint_not_running", "not running", "model_not_available")
 
-def _ask_finetuned(messages: list) -> str:
+
+def _ask_together(messages: list) -> str:
     resp = _together.chat.completions.create(
-        model=FINETUNED_MODEL,
+        model=TOGETHER_MODEL,
         messages=messages,
         max_tokens=1024,
         temperature=0.3,
@@ -46,24 +48,25 @@ def chat(db: Session, company_id: str, message: str) -> dict:
         {"role": "user", "content": f"=== CONTEXT ===\n{context}\n\n=== QUESTION ===\n{message}"},
     ]
 
-    model_used = FINETUNED_MODEL
+    model_used = TOGETHER_MODEL
     try:
-        answer = _ask_finetuned(messages)
-    except Exception as primary_err:
-        if "dedicated_endpoint_not_running" in str(primary_err) or "not running" in str(primary_err).lower():
+        answer = _ask_together(messages)
+    except Exception as e:
+        err = str(e).lower()
+        if any(k in err for k in _TOGETHER_ERRORS):
             try:
                 resp = _call_with_fallback(
                     messages=messages,
-                    model=FALLBACK_MODEL,
+                    model=GROQ_FALLBACK_MODEL,
                     temperature=0.3,
                     max_completion_tokens=1024,
                 )
                 answer = resp.choices[0].message.content.strip()
-                model_used = FALLBACK_MODEL
-            except Exception as fallback_err:
-                raise HTTPException(status_code=502, detail=f"AI service error: {str(fallback_err)}")
+                model_used = GROQ_FALLBACK_MODEL
+            except Exception as fe:
+                raise HTTPException(status_code=502, detail=f"AI service error: {str(fe)}")
         else:
-            raise HTTPException(status_code=502, detail=f"AI service error: {str(primary_err)}")
+            raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
 
     return {
         "question": message,
