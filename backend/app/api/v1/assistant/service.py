@@ -1,17 +1,22 @@
 import os
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
+from together import Together
 
 from app.core.vectorless.context import build_context
-from app.service.groq.groq import _call_with_fallback
 
-SYSTEM_PROMPT = """You are VIVAD X Assistant — an intelligent document verification advisor.
-You have access to real-time company verification data provided as context below.
-Answer questions accurately using ONLY the context provided. Do not make up data.
-Be concise but complete. If asked about a specific document, refer to the details in context.
-Format numbers clearly. When mentioning blockchain transactions, include the verify_url."""
+MODEL = "incpractical_b3ab/Qwen3-8B-Vivad-b073dc2a-4f79c591"
 
-MODEL = "llama-3.3-70b-versatile"
+SYSTEM_PROMPT = (
+    "You are VIVAD, the intelligent AI assistant for the VIVAD X platform — "
+    "a Smart Document Reconciliation & Verification System. You help companies verify "
+    "documents using AI vision, dynamic criteria, and blockchain signing. "
+    "You have access to real-time company data provided as context. "
+    "Answer using ONLY the context when it is available. Be precise, professional, and concise. "
+    "When mentioning blockchain transactions, include the verify_url."
+)
+
+_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
 
 def chat(db: Session, company_id: str, message: str) -> dict:
@@ -23,16 +28,17 @@ def chat(db: Session, company_id: str, message: str) -> dict:
     context = build_context(db, company_id)
 
     try:
-        response = _call_with_fallback(
+        resp = _client.chat.completions.create(
+            model=MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": f"=== CONTEXT ===\n{context}\n\n=== QUESTION ===\n{message}"},
             ],
-            model=MODEL,
-            temperature=0.2,
-            max_completion_tokens=1024,
+            max_tokens=2048,
+            temperature=0.3,
+            stop=["<|im_end|>", "<|endoftext|>"],
         )
-        answer = response.choices[0].message.content
+        answer = resp.choices[0].message.content.strip()
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
 
@@ -42,5 +48,6 @@ def chat(db: Session, company_id: str, message: str) -> dict:
         "context_summary": {
             "data_source": "live_db",
             "vectorless": True,
+            "model": MODEL,
         },
     }
