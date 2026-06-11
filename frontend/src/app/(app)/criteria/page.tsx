@@ -45,7 +45,7 @@ export default function CriteriaPage() {
     <div className="dash-content dash-content--saas">
       <PageHeader
         title="Criteria"
-        description="Verification rule packs — enroll before running document checks"
+        description="Enroll a rule pack before you run document checks"
         actions={<span className="docs-count-pill">{enrolled.length} enrolled</span>}
       />
 
@@ -98,7 +98,7 @@ export default function CriteriaPage() {
                 </div>
 
                 <p className="criteria-board-meta">
-                  {c.data.fields.length} fields · {c.data.rules.length} rules
+                  {c.data.fields.length} fields, {c.data.rules.length} rules
                 </p>
 
                 <div className="criteria-fields">

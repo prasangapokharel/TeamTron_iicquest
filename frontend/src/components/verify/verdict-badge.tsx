@@ -12,7 +12,7 @@ const STYLES: Record<string, string> = {
 };
 
 export function VerdictBadge({ verdict, className }: { verdict?: string; className?: string }) {
-  if (!verdict) return <span className={cn("badge badge-ignored", className)}>—</span>;
+  if (!verdict) return <span className={cn("badge badge-ignored", className)}>n/a</span>;
   const key = verdict.toLowerCase();
   return (
     <span className={cn("badge", STYLES[key] ?? "badge-ignored", className)}>

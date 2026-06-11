@@ -54,7 +54,7 @@ export default function SignupPage() {
   return (
     <AuthLayout
       title="Register"
-      subtitle="Create an organization account. New workspaces start with 100 credits."
+      subtitle="Set up your company account. You start with 100 free credits."
       footer={
         <p>
           Have an account? <Link href="/login">Sign in</Link>

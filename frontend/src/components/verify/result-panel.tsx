@@ -18,7 +18,7 @@ export function ResultPanel({ result }: { result: VerificationResult }) {
           </div>
           <div className="result-score">
             <p className="section-label">Risk Score</p>
-            <span className="result-score-value">{result.risk_score ?? "—"}</span>
+            <span className="result-score-value">{result.risk_score ?? "n/a"}</span>
             <span className="result-score-max">/ 100</span>
           </div>
           {result.criteria && (
@@ -48,7 +48,7 @@ export function ResultPanel({ result }: { result: VerificationResult }) {
             {Object.entries(result.extracted_fields).map(([k, v]) => (
               <div key={k} className="result-field-row">
                 <span className="result-field-key">{k}</span>
-                <span className="result-field-val">{v ?? "—"}</span>
+                <span className="result-field-val">{v ?? "n/a"}</span>
               </div>
             ))}
           </div>

@@ -1,61 +1,65 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { paymentApi, planApi } from "@/lib/api";
-import type { Payment, Plan } from "@/types/api";
+import { paymentApi, transactionApi } from "@/lib/api";
+import type { Payment, WalletTransaction } from "@/types/api";
+
+function statusBadge(status: string) {
+  const s = status.toLowerCase();
+  if (s === "success") return "badge status-verified";
+  if (s === "pending") return "badge badge-pending";
+  if (s === "failed") return "badge status-critical";
+  return "badge badge-ignored";
+}
+
+function formatDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleString("en-NP", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
 
 export default function PaymentsPage() {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [planId, setPlanId] = useState("");
-  const [amount, setAmount] = useState(100);
-  const [loading, setLoading] = useState(false);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [planPayments, setPlanPayments] = useState<Payment[]>([]);
   const [error, setError] = useState("");
-  const [msg, setMsg] = useState("");
-
-  const load = () => {
-    paymentApi.list().then(setPayments);
-    planApi.list().then((p) => {
-      setPlans(p);
-      if (p[0]) setPlanId(p[0].id);
-    });
-  };
 
   useEffect(() => {
-    load();
+    Promise.all([transactionApi.list(), paymentApi.list()])
+      .then(([txns, plans]) => {
+        setTransactions(txns);
+        setPlanPayments(plans);
+      })
+      .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : "Could not load payments");
+      });
   }, []);
 
-  const create = async () => {
-    if (!planId) return;
-    setLoading(true);
-    setError("");
-    setMsg("");
-    try {
-      await paymentApi.create(planId, amount);
-      setMsg("Payment recorded successfully.");
-      load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Payment failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const totalSpent = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+  const successful = transactions.filter((t) => t.status === "success");
+  const totalPaid = successful.reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <div className="dash-content dash-content--saas">
       <PageHeader
         title="Payments"
-        description="Billing history and plan purchases for your organization"
-        actions={<span className="docs-count-pill">{payments.length} records</span>}
+        description="eSewa top-ups and billing records for your workspace"
+        actions={
+          <Link href="/settings/balance" className="dash-btn dash-btn--primary">
+            Add credits
+          </Link>
+        }
       />
 
-      {(error || msg) && (
+      {error && (
         <div className="settings-alerts">
-          {error && <p className="auth-error">{error}</p>}
-          {msg && <p className="success-banner">{msg}</p>}
+          <p className="auth-error">{error}</p>
         </div>
       )}
 
@@ -63,94 +67,80 @@ export default function PaymentsPage() {
         <div className="balance-board-metrics">
           <div className="balance-metric">
             <div>
-              <p className="balance-metric-value">{payments.length}</p>
-              <p className="balance-metric-label">Transactions</p>
+              <p className="balance-metric-value">{transactions.length}</p>
+              <p className="balance-metric-label">eSewa attempts</p>
             </div>
           </div>
           <div className="balance-metric">
             <div>
-              <p className="balance-metric-value">Rs {totalSpent}</p>
-              <p className="balance-metric-label">Total recorded</p>
+              <p className="balance-metric-value">{successful.length}</p>
+              <p className="balance-metric-label">Successful</p>
             </div>
           </div>
           <div className="balance-metric">
             <div>
-              <p className="balance-metric-value">{plans.length}</p>
-              <p className="balance-metric-label">Plans available</p>
+              <p className="balance-metric-value">Rs {totalPaid}</p>
+              <p className="balance-metric-label">Credits purchased</p>
             </div>
           </div>
-        </div>
-
-        <div className="balance-board-body">
-          <div className="settings-board-main">
-            <h2 className="settings-section-title">Record payment</h2>
-            <p className="settings-section-desc">Log a plan purchase for billing tracking.</p>
-
-            <div className="settings-fields">
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="plan">Plan</label>
-                <select
-                  id="plan"
-                  className="input-dark"
-                  value={planId}
-                  onChange={(e) => setPlanId(e.target.value)}
-                >
-                  {plans.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      Rs {p.per_user}/user
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="amount">Amount (Rs)</label>
-                <input
-                  id="amount"
-                  type="number"
-                  className="input-dark"
-                  value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                />
-              </div>
-            </div>
-
-            <div className="settings-actions">
-              <button
-                type="button"
-                className="dash-btn dash-btn--primary"
-                onClick={create}
-                disabled={loading}
-              >
-                {loading ? "Saving…" : "Create payment"}
-              </button>
-            </div>
-          </div>
-
-          <aside className="settings-board-aside">
-            <div className="settings-aside-block">
-              <h2 className="settings-aside-title">Billing notes</h2>
-              <ul className="balance-info-list">
-                <li>Payments are recorded for audit and reporting.</li>
-                <li>Credits are managed separately on the Balance page.</li>
-                <li>Demo accounts can log test transactions.</li>
-              </ul>
-            </div>
-          </aside>
         </div>
 
         <div className="documents-table-section documents-table-section--bordered">
           <div className="dash-cell-head">
             <div>
-              <h2 className="dash-cell-title">Payment history</h2>
-              <p className="dash-cell-desc">All recorded transactions</p>
+              <h2 className="dash-cell-title">eSewa transactions</h2>
+              <p className="dash-cell-desc">Top-ups from the Balance page</p>
             </div>
+            <Link href="/settings/balance" className="dash-text-link">
+              Top up <ArrowUpRight size={13} />
+            </Link>
           </div>
 
-          {payments.length === 0 ? (
+          {transactions.length === 0 ? (
             <div className="dash-board-empty">
-              <p>No payments recorded yet.</p>
+              <p>No eSewa payments yet.</p>
+              <Link href="/settings/balance" className="dash-text-link">
+                Add credits <ArrowUpRight size={13} />
+              </Link>
             </div>
           ) : (
+            <div className="table-wrap">
+              <table className="dash-data-table data-table">
+                <thead>
+                  <tr>
+                    <th>Reference</th>
+                    <th>Amount (Rs)</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((t) => (
+                    <tr key={t.id}>
+                      <td>
+                        <code className="settings-id">{t.txid.slice(0, 12)}…</code>
+                      </td>
+                      <td className="dash-table-num">{t.amount}</td>
+                      <td>
+                        <span className={statusBadge(t.status)}>{t.status}</span>
+                      </td>
+                      <td>{formatDate(t.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {planPayments.length > 0 && (
+          <div className="documents-table-section documents-table-section--bordered">
+            <div className="dash-cell-head">
+              <div>
+                <h2 className="dash-cell-title">Plan records</h2>
+                <p className="dash-cell-desc">Internal billing entries (legacy)</p>
+              </div>
+            </div>
             <div className="table-wrap">
               <table className="dash-data-table data-table">
                 <thead>
@@ -161,7 +151,7 @@ export default function PaymentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.map((p) => (
+                  {planPayments.map((p) => (
                     <tr key={p.id}>
                       <td><code className="settings-id">{p.transaction_id}</code></td>
                       <td className="dash-table-num">{p.amount}</td>
@@ -171,8 +161,8 @@ export default function PaymentsPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </section>
     </div>
   );

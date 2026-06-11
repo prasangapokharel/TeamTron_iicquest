@@ -90,7 +90,7 @@ function AssistantChat() {
     <div className="dash-content dash-content--saas">
       <PageHeader
         title="Assistant"
-        description="Vectorless RAG — answers from live database context, no embeddings"
+        description="Ask about your verifications. Answers come straight from your live data."
         actions={
           messages.length > 0 ? (
             <button type="button" className="dash-btn dash-btn--ghost" onClick={clearChat}>
@@ -141,7 +141,7 @@ function AssistantChat() {
                 <div>
                   <p className="whitespace-pre-wrap">{m.content}</p>
                   {m.vectorless && (
-                    <span className="chat-meta">Vectorless · live DB context</span>
+                    <span className="chat-meta">Live data from your account</span>
                   )}
                 </div>
               </div>

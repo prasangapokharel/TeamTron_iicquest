@@ -13,7 +13,7 @@ const PROBLEMS = [
   {
     icon: Clock,
     title: "Hours per case",
-    desc: "Manual document checking takes 30 minutes to 3 hours per case — slowing operations and increasing backlog.",
+    desc: "Manual checks take 30 minutes to 3 hours per case. That slows teams down and piles up backlog.",
   },
   {
     icon: AlertTriangle,

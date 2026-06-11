@@ -85,7 +85,7 @@ export default function ApiKeysPage() {
           <div className="dash-cell-head">
             <div>
               <h2 className="dash-cell-title">Active keys</h2>
-              <p className="dash-cell-desc">{activeCount} active · {keys.length} total</p>
+              <p className="dash-cell-desc">{activeCount} active, {keys.length} total</p>
             </div>
           </div>
 

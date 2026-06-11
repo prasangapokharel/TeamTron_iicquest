@@ -179,7 +179,7 @@ export function StackVisual({ className }: { className?: string }) {
         </div>
       </div>
 
-      <p className="stack-visual-caption">Ingest → verify → on-chain audit trail</p>
+      <p className="stack-visual-caption">Upload, verify, then anchor proof on chain</p>
     </div>
   );
 }

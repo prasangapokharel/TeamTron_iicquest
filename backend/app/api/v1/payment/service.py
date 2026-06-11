@@ -1,9 +1,11 @@
 import os
 import hmac
+import json
 import uuid
 import base64
 import hashlib
 import secrets
+import time
 import httpx
 from datetime import date
 from sqlalchemy.orm import Session
@@ -18,14 +20,65 @@ from db.models.payment_method import PaymentMethod
 
 ESEWA_SECRET = os.getenv("ESEWA_SECRET_KEY", "8gBm/:&EnhH.1/q")
 ESEWA_PRODUCT_CODE = os.getenv("ESEWA_PRODUCT_CODE", "EPAYTEST")
-ESEWA_BASE_URL = os.getenv("ESEWA_BASE_URL", "https://rc-epay.esewa.com.np")
-ESEWA_VERIFY_URL = os.getenv("ESEWA_VERIFY_URL", "https://uat.esewa.com.np/api/epay/transaction/status/")
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+ESEWA_BASE_URL = os.getenv("ESEWA_BASE_URL", "https://rc-epay.esewa.com.np").rstrip("/")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/")
+
+
+def _resolve_verify_url() -> str:
+    """Sandbox pay form uses rc-epay; status API is on rc.esewa.com.np (not uat.esewa.com.np)."""
+    explicit = os.getenv("ESEWA_VERIFY_URL")
+    if explicit:
+        return explicit.rstrip("/") + "/"
+
+    if "epay.esewa.com.np" in ESEWA_BASE_URL and "rc-" not in ESEWA_BASE_URL:
+        return "https://esewa.com.np/api/epay/transaction/status/"
+
+    return "https://rc.esewa.com.np/api/epay/transaction/status/"
+
+
+ESEWA_VERIFY_URL = _resolve_verify_url()
 
 
 def _sign(message: str) -> str:
     h = hmac.new(ESEWA_SECRET.encode(), message.encode(), hashlib.sha256)
     return base64.b64encode(h.digest()).decode()
+
+
+def _normalize_amount(value) -> str:
+    if value is None:
+        raise HTTPException(status_code=400, detail="Missing payment amount")
+    if isinstance(value, (int, float)):
+        num = float(value)
+    else:
+        num = float(str(value).strip())
+    if num.is_integer():
+        return str(int(num))
+    return str(num)
+
+
+def _fetch_esewa_status(transaction_uuid: str, total_amount: str) -> dict:
+    last_error = None
+    for attempt in range(3):
+        try:
+            resp = httpx.get(
+                ESEWA_VERIFY_URL,
+                params={
+                    "product_code": ESEWA_PRODUCT_CODE,
+                    "total_amount": total_amount,
+                    "transaction_uuid": transaction_uuid,
+                },
+                timeout=15,
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(1)
+    raise HTTPException(
+        status_code=502,
+        detail=f"Could not reach eSewa status API ({ESEWA_VERIFY_URL})",
+    ) from last_error
 
 
 def _unique_transaction_id(db: Session) -> str:
@@ -108,46 +161,15 @@ def initialize_esewa(db: Session, company_id: str, amount: int) -> dict:
     }
 
 
-def verify_esewa(db: Session, data: str) -> dict:
-    try:
-        decoded = base64.b64decode(data).decode()
-        import json
-        payload = json.loads(decoded)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid eSewa response data")
-
-    transaction_uuid = payload.get("transaction_uuid")
-    total_amount = payload.get("total_amount")
-    status = payload.get("status")
-
-    if status != "COMPLETE":
-        txn = read(db, Transaction, txid=transaction_uuid)
-        if txn:
-            update(db, txn, status="failed")
-        raise HTTPException(status_code=400, detail="Payment not completed")
-
-    try:
-        resp = httpx.get(
-            ESEWA_VERIFY_URL,
-            params={
-                "product_code": ESEWA_PRODUCT_CODE,
-                "total_amount": total_amount,
-                "transaction_uuid": transaction_uuid,
-            },
-            timeout=10,
-        )
-        verify_data = resp.json()
-    except Exception:
-        raise HTTPException(status_code=502, detail="eSewa verification failed")
-
-    if verify_data.get("status") != "COMPLETE":
-        raise HTTPException(status_code=400, detail="eSewa verification rejected")
-
-    txn = read(db, Transaction, txid=transaction_uuid)
-    if not txn:
-        raise HTTPException(status_code=404, detail="Transaction not found")
+def _credit_company(db: Session, txn: Transaction) -> dict:
     if txn.status == "success":
-        return {"message": "Already processed", "transaction_id": str(txn.id)}
+        balance_row = read(db, Balance, company_id=txn.company_id)
+        return {
+            "message": "Already processed",
+            "transaction_id": str(txn.id),
+            "amount": txn.amount,
+            "new_balance": balance_row.balance if balance_row else txn.amount,
+        }
 
     update(db, txn, status="success")
 
@@ -157,9 +179,67 @@ def verify_esewa(db: Session, data: str) -> dict:
     else:
         create(db, Balance, company_id=txn.company_id, balance=txn.amount)
 
+    balance_row = read(db, Balance, company_id=txn.company_id)
+    if not balance_row:
+        raise HTTPException(status_code=500, detail="Could not load balance after payment")
+
     return {
         "message": "Payment successful",
         "transaction_id": str(txn.id),
         "amount": txn.amount,
-        "new_balance": (read(db, Balance, company_id=txn.company_id)).balance,
+        "new_balance": balance_row.balance,
     }
+
+
+def _decode_esewa_payload(data: str) -> dict:
+    raw = data.strip()
+    padding = (-len(raw)) % 4
+    if padding:
+        raw += "=" * padding
+    try:
+        decoded = base64.urlsafe_b64decode(raw).decode()
+    except Exception:
+        decoded = base64.b64decode(raw).decode()
+    return json.loads(decoded)
+
+
+def verify_esewa(db: Session, data: str) -> dict:
+    try:
+        payload = _decode_esewa_payload(data)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid eSewa response data")
+
+    transaction_uuid = payload.get("transaction_uuid")
+    total_amount = _normalize_amount(payload.get("total_amount"))
+    status = str(payload.get("status", "")).upper()
+
+    if not transaction_uuid:
+        raise HTTPException(status_code=400, detail="Missing transaction reference")
+
+    txn = read(db, Transaction, txid=transaction_uuid)
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    if txn.status == "success":
+        return _credit_company(db, txn)
+
+    if status != "COMPLETE":
+        update(db, txn, status="failed")
+        raise HTTPException(status_code=400, detail="Payment not completed")
+
+    if int(float(total_amount)) != int(txn.amount):
+        raise HTTPException(status_code=400, detail="Paid amount does not match order")
+
+    verify_data = _fetch_esewa_status(transaction_uuid, total_amount)
+    remote_status = str(verify_data.get("status", "")).upper()
+
+    if remote_status != "COMPLETE":
+        if remote_status == "NOT_FOUND":
+            raise HTTPException(
+                status_code=400,
+                detail="eSewa has not confirmed this payment yet. Wait a moment and check Payment history.",
+            )
+        update(db, txn, status="failed")
+        raise HTTPException(status_code=400, detail=f"eSewa status: {remote_status}")
+
+    return _credit_company(db, txn)

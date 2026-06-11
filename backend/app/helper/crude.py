@@ -5,7 +5,20 @@ from typing import TypeVar, Type
 T = TypeVar("T")
 
 
-def _coerce(v):
+_UUID_KEYS = frozenset({
+    "id",
+    "company_id",
+    "criteria_id",
+    "category_id",
+    "document_id",
+    "document_enroll_id",
+    "plan_id",
+})
+
+
+def _coerce_uuid(v):
+    if isinstance(v, uuid.UUID):
+        return v
     if isinstance(v, str):
         try:
             return uuid.UUID(v)
@@ -15,7 +28,13 @@ def _coerce(v):
 
 
 def _filters(kwargs: dict) -> dict:
-    return {k: _coerce(v) for k, v in kwargs.items()}
+    out = {}
+    for key, value in kwargs.items():
+        if key in _UUID_KEYS:
+            out[key] = _coerce_uuid(value)
+        else:
+            out[key] = value
+    return out
 
 
 def create(db: Session, model: Type[T], **data) -> T:

@@ -173,7 +173,7 @@ Token:          123456
 Merchant Code:  EPAYTEST
 Secret Key:     8gBm/:&EnhH.1/q
 eSewa Pay URL:  https://rc-epay.esewa.com.np/api/epay/main/v2/form
-Verify URL:     https://uat.esewa.com.np/api/epay/transaction/status/
+Verify URL:     https://rc.esewa.com.np/api/epay/transaction/status/
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -196,5 +196,5 @@ ENVIRONMENT VARIABLES (add to .env for production)
 ESEWA_SECRET_KEY=8gBm/:&EnhH.1/q           # prod key from eSewa dashboard
 ESEWA_PRODUCT_CODE=EPAYTEST                  # prod merchant code from eSewa
 ESEWA_BASE_URL=https://rc-epay.esewa.com.np  # prod: https://epay.esewa.com.np
-ESEWA_VERIFY_URL=https://uat.esewa.com.np/api/epay/transaction/status/
+ESEWA_VERIFY_URL=https://rc.esewa.com.np/api/epay/transaction/status/
 BACKEND_URL=http://localhost:8000            # prod: your public backend URL

@@ -74,7 +74,7 @@ export default function DashboardPage() {
     <div className="dash-content dash-content--saas dash-page-enter">
       <PageHeader
         title="Dashboard"
-        description={`${data.company.company_name} · ${balance} credits · ${data.documents.total} documents`}
+        description={`${data.company.company_name}, ${balance} credits, ${data.documents.total} documents`}
         actions={
           <>
             <Link href="/documents" className="dash-btn dash-btn--ghost">
@@ -153,8 +153,8 @@ export default function DashboardPage() {
                           <code>{v.enroll_id.slice(0, 8)}</code>
                         </Link>
                       </td>
-                      <td>{v.verdict ? <VerdictBadge verdict={v.verdict} /> : "—"}</td>
-                      <td className="dash-table-num">{v.risk_score ?? "—"}</td>
+                      <td>{v.verdict ? <VerdictBadge verdict={v.verdict} /> : "n/a"}</td>
+                      <td className="dash-table-num">{v.risk_score ?? "n/a"}</td>
                       <td className="dash-table-action">
                         <Link href={`/documents/${v.enroll_id}/result`} aria-label="Open">
                           <ArrowUpRight size={14} />
