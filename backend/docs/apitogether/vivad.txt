@@ -14,3 +14,16 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 
 modelname= incpractical_b3ab/Qwen3-8B-Vivad-b073dc2a-4f79c591
+
+
+
+Issue: I asked what is vivad then
+output= 
+
+The term **"vivad"** is not a standard English word, but it may refer to a **legal term** in the context of **Indian law**. Specifically, it is used in the **Legal Services Authorities Act, 1987** and related to the **National Legal Services Authority (NALSA)**. 
+
+In this context, **"vivad"** means a **pending legal dispute** or **case** that is being resolved through the legal system. It is often associated with cases involving **constitutional rights**, **social justice**, or **legal redressal** for marginalized communities (e.g., LGBTQ+ rights, gender justice, etc.). 
+
+For example, in some legal documents, "vivad" might describe a case that is still under litigation, such as those related to **transgender rights**, **gender recognition**, or **equal treatment**. 
+
+If you encountered this term in a specific context (e.g., a legal case, article, or discussion), feel free to provide more details, and I can clarify further! 😊
