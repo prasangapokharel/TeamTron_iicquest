@@ -9,6 +9,7 @@ from db.config.env import get_db
 from db.models.company import Company
 from app.helper.deps import get_current_company, get_company_from_jwt_or_apikey
 from app.api.v1.document import service
+from app.api.v1.document import spoofing as spoofing_service
 
 router = APIRouter(prefix="/document", tags=["document"])
 
@@ -74,6 +75,22 @@ def get_result(
     company: Company = Depends(get_current_company),
 ):
     return service.get_result(db, str(company.id), enroll_id)
+
+
+@router.post("/spoofing/verify")
+def detect_spoofing(
+    file_a: UploadFile = File(...),
+    file_b: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    company: Company = Depends(get_company_from_jwt_or_apikey),
+):
+    return spoofing_service.verify_spoofing(
+        db,
+        file_a_bytes=file_a.file.read(),
+        filename_a=file_a.filename or "",
+        file_b_bytes=file_b.file.read(),
+        filename_b=file_b.filename or "",
+    )
 
 
 @router.get("/{enroll_id}")

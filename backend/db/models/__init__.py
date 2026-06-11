@@ -13,3 +13,4 @@ from db.models.payment import Payment
 from db.models.balance import Balance
 from db.models.payment_method import PaymentMethod
 from db.models.transaction import Transaction
+from db.models.signature_proof import SignatureProof

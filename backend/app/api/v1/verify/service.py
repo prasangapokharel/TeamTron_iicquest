@@ -12,7 +12,9 @@ from db.models.criteria_enroll import CriteriaEnroll
 from db.models.document import Document
 from db.models.document_enroll import DocumentEnroll, DocumentStatus
 from db.models.signature import Signature
+from db.models.signature_proof import SignatureProof
 from db.models.plan import Plan
+from app.utils.image_meta import extract_meta
 
 _SYNTHETIC_FLAG = {
     "field": "image",
@@ -253,6 +255,28 @@ def verify_documents(
     result["status"] = enroll.status
     update(db, enroll, result=result)
     update(db, balance_row, balance=balance_row.balance - cost)
+
+    sig = read(db, Signature, document_enroll_id=enroll.id)
+    for path in paths:
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+            meta = extract_meta(data, filename=path.split("/")[-1])
+            create(
+                db, SignatureProof,
+                signature_id=sig.id if sig else None,
+                document_enroll_id=enroll.id,
+                file_hash=meta["file_hash"],
+                file_size=meta["file_size"],
+                width=meta["width"],
+                height=meta["height"],
+                mime_type=meta["mime_type"],
+                original_filename=meta["original_filename"],
+                phash=meta["phash"],
+                meta=meta,
+            )
+        except Exception:
+            pass
 
     result["cost_deducted"] = cost
     result["balance_remaining"] = balance_row.balance - cost
