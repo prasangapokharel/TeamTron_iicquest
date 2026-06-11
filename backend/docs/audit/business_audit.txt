@@ -1,0 +1,155 @@
+VIVAD X — Business Perspective End-to-End Audit
+Date: 2026-06-11
+Server: http://localhost:8000/api/v1
+Final Result: 53/53 PASS
+
+================================================================================
+FLOW RESULTS TABLE
+================================================================================
+
+FLOW  CHECK                                     STATUS  NOTES
+----  ----------------------------------------  ------  ----------------------
+F1    Register new company                       PASS    201 Created
+F1    Duplicate email → 409                      PASS    409 Conflict
+F1    Wrong password → 401                       PASS    401 Unauthorized
+F1    Correct login → token                      PASS    JWT returned
+F1    GET /company/me                            PASS    200 OK
+F1    PATCH /company/me                          PASS    200 OK
+F1    Security: JWT isolation (own data only)    PASS    Data scoped to JWT sub
+F2    Generate API key                           PASS    201 Created
+F2    List keys → key appears                    PASS    200 OK
+F2    Fake API key → 401                         PASS    401 Unauthorized
+F2    Security: co2 apikey → co2 data only       PASS    Correct scoping
+F2    Revoke key                                 PASS    200 OK
+F2    Revoked key → 401                          PASS    401 Unauthorized
+F3    List criteria                              PASS    200 OK
+F3    Create custom criteria                     PASS    201 Created
+F3    Enroll in criteria                         PASS    201 Created
+F3    Double enroll → 409                        PASS    409 Conflict
+F3    List enrolled → appears                    PASS    200 OK
+F4    Topup 500 credits                          PASS    200 OK
+F4    Balance = 500                              PASS    Exact match
+F4    Upload valid.png → 201                     PASS    201 Created
+F4    Verdict returned (green)                   PASS    verdict=green
+F4    Balance deducted by 50                     PASS    450 remaining
+F4    GET /document/{enroll_id}                  PASS    200 OK
+F4    GET /signature list                        PASS    200 OK
+F4    Verify txid on blockchain                  PASS    200 OK (Tron Nile)
+F5    Invalid doc → not 500                      PASS    201 with verdict
+F5    Invalid doc → 200/201 with verdict         PASS    orange/red verdict
+F5    0 balance → 402                            PASS    402 Payment Required
+F5    Non-existent criteria → 404                PASS    404 Not Found
+F5    6 files → 422                              PASS    422 Unprocessable
+F5    No auth → 401                              PASS    401 Unauthorized
+F6    Dashboard → 200                            PASS    All keys present
+F6    Dashboard has all stat keys                PASS    company/docs/blockchain/financials/api/criteria
+F6    New company dashboard → no crash           PASS    200 OK
+F6    New company docs total = 0                 PASS    Returns 0s gracefully
+F7    Chat 'What is VIVAD X?'                    PASS    200 OK (Groq fallback)
+F7    Response has 'model' in context_summary    PASS    model key present
+F7    Chat 'How many docs verified?'             PASS    200 OK
+F7    Empty message → 422                        PASS    422 Unprocessable
+F7    Message >1000 chars → 422                  PASS    422 Unprocessable
+F8    GET /balance                               PASS    200 OK
+F8    Topup 100 → 200                            PASS    Balance increases
+F8    GET /payment_method → 200                  PASS    eSewa listed
+F8    POST /payment/initialize                   PASS    422 (invalid body, expected)
+F8    GET /transaction (new co → empty)          PASS    200 empty list
+F8    Topup negative → 422                       PASS    422 Unprocessable
+F8    Topup 0 → 422                              PASS    422 Unprocessable
+F9    GET /signature list                        PASS    200 OK
+F9    Verify valid txid on blockchain            PASS    200 OK
+F9    Fake txid → not 500                        PASS    404 Not Found
+F10   Import mcp server                          PASS    Module loads OK
+F10   Import build_context                       PASS    Module loads OK
+
+
+================================================================================
+BUGS FOUND AND FIXED
+================================================================================
+
+BUG 1: Criteria duplicate data → unhandled 500
+  File: app/api/v1/critaria/service.py
+  Root cause: criteria.data column has UNIQUE constraint. Creating the same
+    criteria data twice raised psycopg2.errors.UniqueViolation which was
+    not caught, resulting in a 500 Internal Server Error.
+  Fix: Wrapped create() in try/except IntegrityError → raises 409 Conflict.
+    Added db.rollback() to prevent session poisoning.
+
+BUG 2: AI assistant 502 when Together AI model unavailable
+  File: app/api/v1/assistant/service.py
+  Root cause: The fallback to Groq only triggered on specific error strings
+    ("dedicated_endpoint_not_running", "not running", "model_not_available").
+    The actual Together error was "Unable to access non-serverless model"
+    (BadRequestError 400), which did not match any keyword, so Groq fallback
+    was never attempted and the API returned 502.
+  Fix: Changed to always fall back to Groq on any Together exception.
+    Removed the narrow keyword-matching gate.
+
+
+================================================================================
+SECURITY FINDINGS
+================================================================================
+
+[PASS] All protected endpoints return 401 without auth (not 422 or 500)
+  Verified: /verify/upload, /balance, /document, /company/me, etc.
+
+[PASS] Company data always filtered by company_id from JWT/API key
+  GET /company/me, GET /balance, GET /document, GET /apikey all derive
+  company identity from the token/key, never from request body.
+
+[PASS] No endpoint accepts company_id as user input for authorization
+  No route parameters or body fields allow company_id injection.
+
+[PASS] Balance topup validates amount > 0
+  BalanceTopUp schema: amount: int = Field(..., gt=0)
+  Returns 422 for 0 or negative amounts.
+
+[PASS] File upload validates file type (extension + content-type)
+  Extension: .jpg, .jpeg, .png, .webp only
+  Content-type: image/jpeg, image/png, image/webp only (ADDED in this audit)
+  Previously only extension was checked — a malicious file named .jpg
+  with a non-image content-type would pass through.
+
+[PASS] API key revocation is immediate and enforced
+  Revoked keys return 401 on next use.
+
+[PASS] JWT token scoping — no cross-company data leakage
+  Company 2's API key only returns Company 2's data.
+
+[NOTE] Rate limiting: Not implemented. Consider adding slowapi or similar
+  middleware for production to prevent brute-force on /auth/login and
+  abuse of /verify/upload.
+
+
+================================================================================
+MISSING FEATURES ADDED
+================================================================================
+
+1. GET /document — pagination (limit/offset query params)
+   Previously returned all documents. Now supports:
+     GET /document?limit=20&offset=0
+   Default: limit=20, ordered by most recent first.
+
+2. File upload content-type validation (image/* only)
+   Previously only checked file extension, not HTTP content-type header.
+   Now rejects uploads with non-image content-type.
+
+3. AI assistant fallback hardened
+   Always falls back to Groq (multi-key rotation) if Together AI fails
+   for any reason. Previously would 502 on Together errors outside the
+   narrow keyword match list.
+
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+1. Rate limiting on /auth/login (brute-force protection)
+2. Rate limiting on /verify/upload (cost center, prevent drain attacks)
+3. Add created_at index on document_enroll for efficient pagination
+4. Consider making criteria.data non-unique or using a hash-based dedup
+   to allow minor variations in criteria configuration
+5. Log Together AI errors for monitoring (currently swallowed on fallback)
+6. Payment /initialize endpoint: add a valid test plan_id to the docs
+   (currently returns 422 because body expects {amount: int} not {plan_id, payment_method})

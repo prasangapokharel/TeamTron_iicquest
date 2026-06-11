@@ -46,8 +46,13 @@ def create_document(
 
 
 @router.get("")
-def list_documents(db: Session = Depends(get_db), company: Company = Depends(get_company_from_jwt_or_apikey)):
-    return service.list_documents(db, str(company.id))
+def list_documents(
+    limit: int = 20,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    company: Company = Depends(get_company_from_jwt_or_apikey),
+):
+    return service.list_documents(db, str(company.id), limit=limit, offset=offset)
 
 
 @router.get("/{enroll_id}/file/{file_index}")

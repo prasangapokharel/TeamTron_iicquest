@@ -1,5 +1,6 @@
 from typing import Any
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
 from app.helper.crude import create, read, read_all
@@ -12,7 +13,11 @@ def list_criteria(db: Session) -> list:
 
 
 def create_criteria(db: Session, data: dict[str, Any]) -> dict:
-    criteria = create(db, Criteria, data=data)
+    try:
+        criteria = create(db, Criteria, data=data)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Criteria with identical data already exists")
     return {"id": str(criteria.id), "data": criteria.data}
 
 

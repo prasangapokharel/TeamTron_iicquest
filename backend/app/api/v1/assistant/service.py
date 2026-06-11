@@ -21,9 +21,6 @@ SYSTEM_PROMPT = (
 
 _together = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
-_TOGETHER_ERRORS = ("dedicated_endpoint_not_running", "not running", "model_not_available")
-
-
 def _ask_together(messages: list) -> str:
     resp = _together.chat.completions.create(
         model=TOGETHER_MODEL,
@@ -51,22 +48,18 @@ def chat(db: Session, company_id: str, message: str) -> dict:
     model_used = TOGETHER_MODEL
     try:
         answer = _ask_together(messages)
-    except Exception as e:
-        err = str(e).lower()
-        if any(k in err for k in _TOGETHER_ERRORS):
-            try:
-                resp = _call_with_fallback(
-                    messages=messages,
-                    model=GROQ_FALLBACK_MODEL,
-                    temperature=0.3,
-                    max_completion_tokens=1024,
-                )
-                answer = resp.choices[0].message.content.strip()
-                model_used = GROQ_FALLBACK_MODEL
-            except Exception as fe:
-                raise HTTPException(status_code=502, detail=f"AI service error: {str(fe)}")
-        else:
-            raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
+    except Exception:
+        try:
+            resp = _call_with_fallback(
+                messages=messages,
+                model=GROQ_FALLBACK_MODEL,
+                temperature=0.3,
+                max_completion_tokens=1024,
+            )
+            answer = resp.choices[0].message.content.strip()
+            model_used = GROQ_FALLBACK_MODEL
+        except Exception as fe:
+            raise HTTPException(status_code=502, detail=f"AI service error: {str(fe)}")
 
     return {
         "question": message,

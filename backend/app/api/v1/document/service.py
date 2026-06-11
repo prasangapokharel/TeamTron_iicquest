@@ -9,16 +9,18 @@ from db.models.document_enroll import DocumentEnroll, DocumentStatus
 from db.models.signature import Signature
 
 UPLOAD_DIR = "uploads"
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
-
-
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 def _save_upload(file: UploadFile, company_id: str) -> str:
     ext = os.path.splitext(file.filename or "doc.jpg")[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=422, detail=f"Unsupported file type: {ext}. Use jpg or png.")
+        raise HTTPException(status_code=422, detail=f"Unsupported file type: {ext}. Use jpg, png, or webp.")
+    content_type = (file.content_type or "").split(";")[0].strip().lower()
+    if content_type and content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=422, detail=f"Invalid content type: {content_type}. Must be an image.")
     content = file.file.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
@@ -42,8 +44,21 @@ def create_document(db: Session, company_id: str, paths: list[str]) -> dict:
     }
 
 
-def list_documents(db: Session, company_id: str) -> list:
-    enrollments = read_all(db, DocumentEnroll, company_id=company_id)
+def list_documents(db: Session, company_id: str, limit: int = 20, offset: int = 0) -> list:
+    import uuid as _uuid
+    from sqlalchemy import desc
+    try:
+        cid = _uuid.UUID(company_id)
+    except ValueError:
+        cid = company_id
+    enrollments = (
+        db.query(DocumentEnroll)
+        .filter_by(company_id=cid)
+        .order_by(desc(DocumentEnroll.id))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
     result = []
     for e in enrollments:
         doc = read(db, Document, id=e.document_id)
