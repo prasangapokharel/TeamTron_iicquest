@@ -1,5 +1,6 @@
 .env
 .opencode
+unit/mcp/cursor_config.json
 .venv
 __pycache__/
 *.pyc
