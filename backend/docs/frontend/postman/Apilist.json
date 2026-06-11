@@ -11,6 +11,20 @@
   ],
   "item": [
     {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] },
+            "description": "Returns service health status."
+          }
+        }
+      ]
+    },
+    {
       "name": "Auth",
       "item": [
         {
