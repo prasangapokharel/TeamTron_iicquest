@@ -398,10 +398,65 @@
       ]
     },
     {
+      "name": "Balance",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/balance", "host": ["{{base_url}}"], "path": ["api", "v1", "balance"] }
+          }
+        },
+        {
+          "name": "Top Up Balance",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/balance/topup", "host": ["{{base_url}}"], "path": ["api", "v1", "balance", "topup"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"amount\": 50\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Method",
+      "item": [
+        {
+          "name": "List Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/payment_method", "host": ["{{base_url}}"], "path": ["api", "v1", "payment_method"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transaction",
+      "item": [
+        {
+          "name": "List Transactions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/transaction", "host": ["{{base_url}}"], "path": ["api", "v1", "transaction"] }
+          }
+        }
+      ]
+    },
+    {
       "name": "Payment",
       "item": [
         {
-          "name": "Create Payment",
+          "name": "Create Payment (Plan)",
           "request": {
             "method": "POST",
             "header": [
@@ -422,6 +477,46 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": { "raw": "{{base_url}}/api/v1/payment", "host": ["{{base_url}}"], "path": ["api", "v1", "payment"] }
+          }
+        },
+        {
+          "name": "eSewa — Initialize",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/payment/initialize", "host": ["{{base_url}}"], "path": ["api", "v1", "payment", "initialize"] },
+            "body": {
+              "mode": "raw",
+              "options": { "raw": { "language": "json" } },
+              "raw": "{\n  \"amount\": 100\n}"
+            },
+            "description": "Returns eSewa form fields. Frontend submits these as a form POST to esewa_url. Each credit = NPR 1."
+          }
+        },
+        {
+          "name": "eSewa — Success Callback (backend auto-handles)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/success?data=base64encodedPayload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", "success"],
+              "query": [{ "key": "data", "value": "base64encodedPayload", "description": "eSewa sends this automatically — do not call manually" }]
+            },
+            "description": "eSewa redirects here automatically after successful payment. Verifies with eSewa API, adds credits to balance, records transaction."
+          }
+        },
+        {
+          "name": "eSewa — Failure Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/payment/failure", "host": ["{{base_url}}"], "path": ["api", "v1", "payment", "failure"] },
+            "description": "eSewa redirects here on failure or cancellation."
           }
         }
       ]

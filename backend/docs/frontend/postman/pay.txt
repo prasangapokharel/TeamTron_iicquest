@@ -1,0 +1,200 @@
+VIVAD X — eSewa Payment Integration Guide (Frontend)
+======================================================
+Base URL (local): http://localhost:8000
+Base URL (prod):  https://your-domain.com
+
+All authenticated requests require:
+  Header: Authorization: Bearer <token>
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — Get Available Payment Methods
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET /api/v1/payment_method
+Auth: not required
+
+Response:
+[
+  { "id": 1, "name": "esewa" }
+]
+
+Use this to dynamically show payment options on the UI.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — Get Current Balance
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET /api/v1/balance
+Auth: required
+
+Response:
+{
+  "company_id": "uuid",
+  "balance": 100
+}
+
+Show this on the dashboard/wallet page.
+1 credit = 1 document verification.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — Initialize eSewa Payment
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+POST /api/v1/payment/initialize
+Auth: required
+Body: { "amount": 100 }
+
+Response:
+{
+  "transaction_id": "uuid-of-local-transaction",
+  "esewa_url": "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
+  "fields": {
+    "amount": 100,
+    "tax_amount": 0,
+    "total_amount": 100,
+    "transaction_uuid": "abc-123-uuid",
+    "product_code": "EPAYTEST",
+    "product_service_charge": 0,
+    "product_delivery_charge": 0,
+    "success_url": "http://localhost:8000/api/v1/payment/success",
+    "failure_url": "http://localhost:8000/api/v1/payment/failure",
+    "signed_field_names": "total_amount,transaction_uuid,product_code",
+    "signature": "hmac-sha256-base64-string"
+  }
+}
+
+Store the transaction_id locally for reference.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — Redirect User to eSewa (Form Submit)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After receiving the fields from Step 3, create and auto-submit
+an HTML form to the eSewa payment page.
+
+React / JS example:
+
+  function redirectToEsewa(data) {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = data.esewa_url;
+
+    Object.entries(data.fields).forEach(([key, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // Usage:
+  const res = await fetch("/api/v1/payment/initialize", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ amount: 100 })
+  });
+  const data = await res.json();
+  redirectToEsewa(data);
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5 — eSewa Redirects Back (Automatic)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After the user pays on eSewa:
+
+SUCCESS → eSewa calls GET /api/v1/payment/success?data=<base64>
+  - Backend decodes the data
+  - Verifies payment with eSewa API
+  - Marks transaction status = "success"
+  - Adds `amount` credits to company balance
+  - Returns: { "message": "Payment successful", "transaction_id": "...", "amount": 100, "new_balance": 200 }
+
+FAILURE → eSewa calls GET /api/v1/payment/failure
+  - Returns: { "message": "Payment failed or cancelled" }
+
+NOTE: success_url in production must be your backend's public URL.
+Update BACKEND_URL in .env accordingly.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6 — Handle Success on Frontend
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Option A (backend handles redirect):
+  - In payment/route.py success endpoint, add:
+    return RedirectResponse("http://your-frontend.com/payment/success")
+
+Option B (frontend polls):
+  - After eSewa redirects to a /payment/success page on your frontend,
+    call GET /api/v1/balance to confirm the new balance.
+  - Call GET /api/v1/transaction to confirm transaction status = "success".
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7 — View Transaction History
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET /api/v1/transaction
+Auth: required
+
+Response:
+[
+  {
+    "id": "uuid",
+    "payment_method_id": 1,
+    "amount": 100,
+    "txid": "esewa-transaction-uuid",
+    "status": "success",       // pending | success | failed
+    "created_at": "2026-06-11T08:00:00+05:45"
+  }
+]
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST CREDENTIALS (eSewa Sandbox)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+eSewa ID:       9711111111  (or 9711111112 / 9711111113)
+Password:       Nepal@123
+MPIN:           1122
+Token:          123456
+Merchant Code:  EPAYTEST
+Secret Key:     8gBm/:&EnhH.1/q
+eSewa Pay URL:  https://rc-epay.esewa.com.np/api/epay/main/v2/form
+Verify URL:     https://uat.esewa.com.np/api/epay/transaction/status/
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CREDIT MODEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1 NPR   = 1 credit
+1 credit = 1 document verification
+
+If balance < 1:
+  POST /api/v1/verify/upload → 402 "Insufficient balance"
+
+Company must top up via eSewa before verifying documents.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENVIRONMENT VARIABLES (add to .env for production)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ESEWA_SECRET_KEY=8gBm/:&EnhH.1/q           # prod key from eSewa dashboard
+ESEWA_PRODUCT_CODE=EPAYTEST                  # prod merchant code from eSewa
+ESEWA_BASE_URL=https://rc-epay.esewa.com.np  # prod: https://epay.esewa.com.np
+ESEWA_VERIFY_URL=https://uat.esewa.com.np/api/epay/transaction/status/
+BACKEND_URL=http://localhost:8000            # prod: your public backend URL
