@@ -129,6 +129,9 @@ def initialize_esewa(db: Session, company_id: str, amount: int) -> dict:
     if not method:
         raise HTTPException(status_code=404, detail="eSewa payment method not found")
 
+    plans = read_all(db, Plan)
+    plan = plans[0] if plans else None
+
     transaction_uuid = str(uuid.uuid4())
     message = f"total_amount={amount},transaction_uuid={transaction_uuid},product_code={ESEWA_PRODUCT_CODE}"
     signature = _sign(message)
@@ -142,8 +145,17 @@ def initialize_esewa(db: Session, company_id: str, amount: int) -> dict:
         status="pending",
     )
 
+    credits_to_receive = (amount // plan.per_user) if plan and plan.per_user else amount
+
     return {
         "transaction_id": str(txn.id),
+        "amount": amount,
+        "plan": {
+            "id": str(plan.id) if plan else None,
+            "per_user": plan.per_user if plan else 1,
+            "credits_to_receive": credits_to_receive,
+            "note": f"{amount} NPR = {credits_to_receive} verification credits (1 credit = {plan.per_user} NPR)" if plan else None,
+        },
         "esewa_url": f"{ESEWA_BASE_URL}/api/epay/main/v2/form",
         "fields": {
             "amount": amount,

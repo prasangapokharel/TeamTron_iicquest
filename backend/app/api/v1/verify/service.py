@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
-from app.helper.crude import create, read, update
+from app.helper.crude import create, read, read_all, update
 from app.service.tron.tron import hash_fields, sign_on_tron
 from app.service.groq.groq import extract_parallel, merge_extractions
 from app.utils.severity import build_flags, compute_risk_score, get_verdict, GREEN, RED, ORANGE
@@ -11,6 +11,7 @@ from db.models.criteria_enroll import CriteriaEnroll
 from db.models.document import Document
 from db.models.document_enroll import DocumentEnroll, DocumentStatus
 from db.models.signature import Signature
+from db.models.plan import Plan
 
 
 def _build_suggestions(
@@ -48,9 +49,15 @@ def verify_documents(
     criteria_id: str,
     paths: list[str],
 ) -> dict:
+    plan = read_all(db, Plan)
+    cost = plan[0].per_user if plan else 1
+
     balance_row = read(db, Balance, company_id=company_id)
-    if not balance_row or balance_row.balance < 1:
-        raise HTTPException(status_code=402, detail="Insufficient balance")
+    if not balance_row or balance_row.balance < cost:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient balance. Required: {cost} credits, Available: {balance_row.balance if balance_row else 0}"
+        )
 
     criteria = read(db, Criteria, id=criteria_id)
     if not criteria:
@@ -137,6 +144,8 @@ def verify_documents(
         update(db, enroll, status=DocumentStatus.review)
 
     update(db, enroll, result=result)
-    update(db, balance_row, balance=balance_row.balance - 1)
+    update(db, balance_row, balance=balance_row.balance - cost)
 
+    result["cost_deducted"] = cost
+    result["balance_remaining"] = balance_row.balance - cost
     return result
