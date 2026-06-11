@@ -1,0 +1,885 @@
+VIVAD X — Frontend Developer Workflow Guide
+============================================
+Platform: Smart Document Reconciliation & Verification System
+Version:  API v1
+Updated:  2026-06-11
+
+This guide covers every page a frontend developer needs to build for the
+VIVAD X dashboard, including exact API calls, request/response shapes,
+UI suggestions, and error handling for each flow.
+
+---
+
+
+1. BASE URL & AUTH SETUP
+=========================
+
+Local development:   http://localhost:8000
+Production:          https://your-deployed-domain.com
+
+HOW JWT AUTH WORKS
+------------------
+After a successful login, the API returns an access_token (JWT).
+Store it immediately in localStorage or an HttpOnly cookie.
+
+  localStorage.setItem("vivad_token", data.access_token);
+
+Every authenticated request must include this header:
+
+  Authorization: Bearer <token>
+
+If the token is missing or expired, the server returns 401.
+On any 401, clear the stored token and redirect the user to /login.
+
+AUTH HEADER EXAMPLE (fetch):
+  const res = await fetch("/api/v1/company/dashboard", {
+    headers: {
+      "Authorization": "Bearer " + localStorage.getItem("vivad_token"),
+      "Content-Type": "application/json"
+    }
+  });
+
+ALTERNATIVE: API KEY AUTH
+  Some endpoints (verify, assistant) also accept:
+    X-API-Key: <your-api-key>
+  This is for programmatic/server-to-server use. Dashboard UI uses JWT.
+
+---
+
+
+2. COMPANY REGISTRATION & LOGIN FLOW
+======================================
+
+STEP 1 — Register a new company account
+
+  POST /api/v1/auth/register
+  Content-Type: application/json
+  Auth: not required
+
+  Request body:
+  {
+    "company_name": "Acme Corp",
+    "email": "acme@example.com",
+    "password": "secret123",
+    "logo": null
+  }
+
+  Success response (201):
+  {
+    "company_id": "550e8400-e29b-41d4-a716-446655440000",
+    "company_name": "Acme Corp",
+    "email": "acme@example.com"
+  }
+
+  ERRORS:
+  - 409 "Email already registered"   → Show: "An account with this email already exists."
+  - 422 "Password must be at least 8 characters" → Show inline field error under password.
+  - 422 validation error (invalid email format)  → Show: "Please enter a valid email address."
+
+  UI FIELDS TO SHOW:
+  - Company Name (text input, required)
+  - Email (email input, required)
+  - Password (password input, min 8 chars, required)
+  - Logo URL (optional text input or skip on signup — can upload later)
+  - Submit button: "Create Account"
+  - Link: "Already have an account? Log in"
+
+
+STEP 2 — Log in and get the JWT token
+
+  POST /api/v1/auth/login
+  Content-Type: application/json
+  Auth: not required
+
+  Request body:
+  {
+    "email": "acme@example.com",
+    "password": "secret123"
+  }
+
+  Success response (200):
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "company_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+
+  ERRORS:
+  - 401 "Invalid credentials" → Show: "Email or password is incorrect."
+
+  AFTER LOGIN:
+  1. Store access_token in localStorage ("vivad_token").
+  2. Store company_id in localStorage ("vivad_company_id").
+  3. Redirect user to /dashboard.
+
+  UI FIELDS TO SHOW:
+  - Email (email input)
+  - Password (password input)
+  - Submit button: "Log In"
+  - Link: "Don't have an account? Register"
+  - Optional: "Forgot password?" (not yet implemented on backend)
+
+
+STEP 3 — Load profile after login
+
+  GET /api/v1/company/me
+  Auth: required
+
+  Success response (200):
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "company_name": "Acme Corp",
+    "email": "acme@example.com",
+    "logo": "/bucket/logo/550e8400/abc.png",
+    "status": "active"
+  }
+
+  Use this to display the company name and logo in the navigation header.
+  Call this once after login and cache the result in app state.
+
+---
+
+
+3. DASHBOARD PAGE
+==================
+
+API CALL:
+
+  GET /api/v1/company/dashboard
+  Auth: required
+
+FULL RESPONSE SHAPE:
+{
+  "company": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "company_name": "Acme Corp",
+    "email": "acme@example.com",
+    "logo": "/bucket/logo/placeholder.png",
+    "status": "active"
+  },
+  "documents": {
+    "total": 142,
+    "verified": 110,
+    "failed": 20,
+    "pending": 12,
+    "verification_rate_pct": 77.5
+  },
+  "blockchain": {
+    "total_signed": 110
+  },
+  "financials": {
+    "total_spent_rs": 142,
+    "total_payments": 8
+  },
+  "api": {
+    "active_keys": 2
+  },
+  "criteria": {
+    "enrolled": 3
+  },
+  "recent_verifications": [
+    {
+      "enroll_id": "uuid",
+      "status": "verified",
+      "document_id": "uuid",
+      "verdict": "Green",
+      "risk_score": 0,
+      "criteria_name": "Passport KYC",
+      "to_address": "TRonscanAddress...",
+      "verify_url": "https://nile.tronscan.org/#/transaction/txid"
+    }
+  ]
+}
+
+WIDGETS / CARDS TO DISPLAY:
+
+  STAT CARDS (top row):
+  - Total Documents:      documents.total
+  - Verified:             documents.verified  (green accent)
+  - Failed:               documents.failed    (red accent)
+  - Pending / Review:     documents.pending   (yellow accent)
+
+  ADDITIONAL CARDS:
+  - Verification Rate:    documents.verification_rate_pct + "%" (progress bar)
+  - Total Spent:          "NPR " + financials.total_spent_rs
+  - Blockchain Signed:    blockchain.total_signed
+  - Active API Keys:      api.active_keys
+  - Enrolled Criteria:    criteria.enrolled
+
+  RECENT VERIFICATIONS TABLE:
+  Columns: Criteria Name | Status (badge) | Verdict (color chip) | Risk Score | Blockchain Link
+  For each row with verify_url: show "View on TronScan" hyperlink.
+
+  UI SUGGESTIONS:
+  - 4-column stat card grid at top
+  - Below that: a donut/pie chart showing verified vs failed vs pending split
+  - Below that: Recent Verifications table (last 5)
+  - Add a "Verify New Document" CTA button linking to /verify
+
+---
+
+
+4. DOCUMENT VERIFICATION FLOW
+===============================
+
+BEFORE SUBMITTING: Check current balance
+  GET /api/v1/balance   (see section 6)
+  If balance < 1, show a top-up prompt instead of the verify form.
+
+STEP 1 — List enrolled criteria (for the criteria dropdown)
+
+  GET /api/v1/criteria/enrolled
+  Auth: required
+
+  Response:
+  [
+    {
+      "id": "enroll-uuid",
+      "criteria_id": "crit-uuid",
+      "company_id": "comp-uuid",
+      "severity": "high",
+      "message": "Critical KYC check",
+      "is_critical": true,
+      "criteria": {
+        "id": "crit-uuid",
+        "data": {
+          "name": "Passport KYC",
+          "category": "Identity",
+          "fields": ["full_name", "dob", "passport_number", "expiry_date"],
+          "rules": [...]
+        }
+      }
+    }
+  ]
+
+  UI: Render a dropdown/select with criteria names.
+  Show criteria.data.name as the label and use the enrollment id.
+
+
+STEP 2 — Upload documents and verify
+
+  POST /api/v1/verify/upload
+  Auth: required (JWT or X-API-Key)
+  Content-Type: multipart/form-data
+
+  Form fields:
+  - criteria_id   (text)  — the criteria UUID (NOT the enroll UUID)
+  - files         (file)  — 1 to 5 image files (jpg/png)
+
+  NOTE: criteria_id here is the RAW criteria UUID, not the enroll UUID.
+  Extract it from the enrolled criteria response: item.criteria_id
+
+  Example (fetch with FormData):
+    const form = new FormData();
+    form.append("criteria_id", selectedCriteriaId);
+    files.forEach(f => form.append("files", f));
+    const res = await fetch("/api/v1/verify/upload", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token },
+      body: form
+    });
+
+  ALTERNATIVE (JSON paths, for server-side use):
+    POST /api/v1/verify
+    Content-Type: application/json
+    {
+      "paths": ["uploads/comp-id/doc1.jpg", "uploads/comp-id/doc2.jpg"],
+      "criteria_id": "crit-uuid"
+    }
+
+
+STEP 3 — Handle the verification result (201)
+
+  FULL RESPONSE SHAPE:
+  {
+    "document_enroll_id": "enroll-uuid",
+    "document_id": "doc-uuid",
+    "criteria_enroll_id": "crit-enroll-uuid",
+    "criteria": {
+      "id": "crit-uuid",
+      "name": "Passport KYC",
+      "category": "Identity"
+    },
+    "extracted_fields": {
+      "full_name": "John Doe",
+      "dob": "1990-01-15",
+      "passport_number": "A1234567",
+      "expiry_date": "2030-01-15"
+    },
+    "conflicts": {},
+    "flags": [],
+    "suggestions": [
+      "Document verified and signed on Tron blockchain"
+    ],
+    "risk_score": 0,
+    "verdict": "Green",
+    "tron_signed": true,
+    "txid": "abc123tronhash",
+    "to_address": "TRonscanAddress...",
+    "hash": "sha256hashvalue",
+    "verify_url": "https://nile.tronscan.org/#/transaction/abc123tronhash",
+    "cost_deducted": 1,
+    "balance_remaining": 49
+  }
+
+VERDICT MEANINGS:
+  Green  → VERIFIED. Document passed all checks. Signed on Tron blockchain.
+            Show: green badge "Verified", blockchain verify_url as clickable link.
+  Orange → REVIEW NEEDED. Some checks flagged for manual review.
+            Show: yellow badge "Review Required", list suggestions.
+  Red    → FAILED. Document failed critical checks.
+            Show: red badge "Failed", list suggestions with issues.
+
+RESULT FIELDS TO DISPLAY:
+  - Verdict badge (color-coded)
+  - Risk Score (0 = clean, higher = riskier — show as progress bar)
+  - Extracted Fields: key-value table
+  - Conflicts: if conflicts object is non-empty, highlight conflicting fields in red
+  - Suggestions: bulleted list
+  - If tron_signed = true: show "Blockchain Verified" chip with verify_url link
+  - cost_deducted: "1 credit used"
+  - balance_remaining: update balance display immediately
+
+ERRORS:
+  - 402 "Insufficient balance. Required: X credits, Available: Y"
+        → Show a modal: "You don't have enough credits. Top up to continue."
+        → Include a "Top Up Now" button linking to /settings/balance
+  - 404 "Criteria not found"     → Show: "The selected criteria is invalid. Please re-select."
+  - 422 "Provide between 1 and 5 document images"  → Show inline file input error.
+  - 401                          → Redirect to login.
+
+UI SUGGESTIONS:
+  - Step 1: Criteria selector dropdown (populated from enrolled criteria)
+  - Step 2: Drag-and-drop file upload zone (accept .jpg, .png, max 5 files)
+  - Show current balance prominently: "Balance: X credits"
+  - Warn: "This verification will use 1 credit" before submit
+  - Submit button: "Verify Document"
+  - Loading state: spinner with "Analyzing document with AI..."
+  - Result panel slides in below with verdict + details
+
+---
+
+
+5. CRITERIA MANAGEMENT
+========================
+
+CRITERIA = a verification template that defines which fields to extract and
+what rules to apply when verifying a document type.
+
+LIST ALL CRITERIA (global, visible to all companies)
+
+  GET /api/v1/criteria
+  Auth: required
+
+  Response:
+  [
+    {
+      "id": "crit-uuid",
+      "data": {
+        "name": "Passport KYC",
+        "category": "Identity",
+        "fields": ["full_name", "dob", "passport_number", "expiry_date"],
+        "rules": [
+          { "field": "full_name", "match": "cross_doc", "severity": "high" },
+          { "field": "dob", "match": "cross_doc", "severity": "high" }
+        ]
+      }
+    }
+  ]
+
+  FIELD MEANINGS:
+  - name:     Human-readable criteria name
+  - category: Document category (Identity, Finance, etc.)
+  - fields:   List of fields the AI will extract from the document image
+  - rules:    Validation rules applied after extraction
+    - field:    Which field this rule applies to
+    - match:    "cross_doc" = compare same field across all uploaded images
+    - severity: "high" = critical failure if mismatch, "low" = warning only
+
+
+ENROLL A CRITERIA (activate it for your company)
+
+  POST /api/v1/criteria/enroll
+  Auth: required
+  Content-Type: application/json
+
+  {
+    "criteria_id": "crit-uuid",
+    "severity": "high",
+    "message": "Critical KYC check",
+    "is_critical": true
+  }
+
+  Response (201):
+  {
+    "id": "enroll-uuid",
+    "criteria_id": "crit-uuid",
+    "company_id": "comp-uuid",
+    "severity": "high",
+    "message": "Critical KYC check",
+    "is_critical": true
+  }
+
+
+LIST ENROLLED CRITERIA (criteria active for your company)
+
+  GET /api/v1/criteria/enrolled
+  Auth: required
+
+  Returns a list of enrolled criteria with nested criteria data.
+  Use this to populate the criteria selector on the verification form.
+
+
+CREATE CUSTOM CRITERIA
+
+  POST /api/v1/criteria
+  Auth: required
+  Content-Type: application/json
+
+  {
+    "data": {
+      "name": "Driving License Check",
+      "category": "Identity",
+      "fields": ["full_name", "dob", "license_number", "expiry_date"],
+      "rules": [
+        { "field": "full_name", "match": "cross_doc", "severity": "high" }
+      ]
+    }
+  }
+
+  Response (201): created criteria object
+
+  UI SUGGESTIONS:
+  - Criteria list page: table with Name, Category, Fields count, Actions
+  - "Enroll" button next to each criteria not yet enrolled
+  - "Active" badge for enrolled criteria
+  - Optional: "Create Custom Criteria" form for advanced users
+
+---
+
+
+6. BALANCE & CREDITS
+=====================
+
+CREDIT MODEL:
+  1 NPR   = 1 credit
+  1 credit = 1 document verification
+  If balance drops to 0, all verification attempts return 402.
+
+GET CURRENT BALANCE
+
+  GET /api/v1/balance
+  Auth: required
+
+  Response:
+  {
+    "company_id": "550e8400-e29b-41d4-a716-446655440000",
+    "balance": 49
+  }
+
+  Show balance in the navbar and on the dashboard card.
+
+LOW BALANCE WARNING:
+  If balance < 5, show a persistent yellow banner:
+  "Low balance: X credits remaining. Top up to continue verifying documents."
+
+
+TOP UP VIA ESEWA (full flow)
+
+STEP 1 — Get available payment methods (optional, for dynamic UI)
+
+  GET /api/v1/payment_method
+  Auth: not required
+
+  Response: [{ "id": 1, "name": "esewa" }]
+  Use to render payment method buttons dynamically.
+
+
+STEP 2 — User enters amount to top up, click "Pay with eSewa"
+
+  POST /api/v1/payment/initialize
+  Auth: required
+  Content-Type: application/json
+
+  { "amount": 100 }    (amount in NPR = number of credits to add)
+
+  Response:
+  {
+    "transaction_id": "local-txn-uuid",
+    "esewa_url": "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
+    "fields": {
+      "amount": 100,
+      "tax_amount": 0,
+      "total_amount": 100,
+      "transaction_uuid": "abc-123-uuid",
+      "product_code": "EPAYTEST",
+      "product_service_charge": 0,
+      "product_delivery_charge": 0,
+      "success_url": "http://localhost:8000/api/v1/payment/success",
+      "failure_url": "http://localhost:8000/api/v1/payment/failure",
+      "signed_field_names": "total_amount,transaction_uuid,product_code",
+      "signature": "hmac-sha256-base64-string"
+    }
+  }
+
+
+STEP 3 — Auto-submit form to eSewa
+
+  Create a hidden HTML form, populate with the fields, and submit it.
+  DO NOT redirect via window.location — must be a POST form submit.
+
+  function redirectToEsewa(data) {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = data.esewa_url;
+    Object.entries(data.fields).forEach(([key, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+
+STEP 4 — eSewa redirects back to backend automatically
+
+  SUCCESS:
+    eSewa → GET /api/v1/payment/success?data=<base64>
+    Backend verifies with eSewa, credits balance, then redirects to:
+      FRONTEND_URL/settings/balance?payment=success&amount=100&balance=200
+
+  FAILURE/CANCEL:
+    eSewa → GET /api/v1/payment/failure
+    Backend redirects to:
+      FRONTEND_URL/settings/balance?payment=failed&reason=cancelled
+
+
+STEP 5 — Handle redirect on /settings/balance page
+
+  Read query params on page load:
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");   // "success" | "failed"
+    const amount  = params.get("amount");
+    const balance = params.get("balance");
+    const reason  = params.get("reason");
+
+  If payment === "success":
+    Show: "Payment successful! X credits added. New balance: Y credits."
+    Refresh balance display.
+
+  If payment === "failed":
+    Show: "Payment failed or was cancelled. Please try again."
+
+
+ESEWA SANDBOX TEST CREDENTIALS:
+  eSewa ID:       9711111111
+  Password:       Nepal@123
+  MPIN:           1122
+  Token:          123456
+  Merchant Code:  EPAYTEST
+  Pay URL:        https://rc-epay.esewa.com.np/api/epay/main/v2/form
+
+  UI SUGGESTIONS:
+  - Balance page: large balance display "49 credits"
+  - "Top Up" button opens a modal with amount input
+  - Preset quick amounts: [10, 50, 100, 500] NPR
+  - After eSewa redirect: show a success/failure toast
+
+---
+
+
+7. AI ASSISTANT (CHAT)
+=======================
+
+The VIVAD assistant is a fine-tuned AI with access to live company data.
+It can answer questions about your verifications, documents, and stats.
+
+API CALL:
+
+  POST /api/v1/assistant/chat
+  Auth: required (JWT or X-API-Key)
+  Content-Type: application/json
+
+  Request:
+  {
+    "message": "How many documents have been verified this month?"
+  }
+
+  Constraints:
+  - message cannot be empty
+  - message max length: 1000 characters
+
+  Success response (200):
+  {
+    "question": "How many documents have been verified this month?",
+    "answer": "You have verified 42 documents this month out of 50 total submissions, giving a verification rate of 84%. Your last verified document was a Passport KYC processed on June 10, 2026.",
+    "context_summary": {
+      "data_source": "live_db",
+      "vectorless": true,
+      "model": "incpractical_b3ab/Qwen3-8B-Vivad-b073dc2a-4f79c591"
+    }
+  }
+
+  ERRORS:
+  - 422 "Message cannot be empty"          → Show: "Please type a message."
+  - 422 "Message too long (max 1000 chars)" → Show character counter, disable send.
+  - 502 "AI service error: ..."             → Show: "Assistant is temporarily unavailable. Please try again." with a Retry button.
+
+EXAMPLE SUGGESTED QUESTIONS (show as clickable chips):
+  - "How many documents were verified today?"
+  - "What is my current balance?"
+  - "Show me my recent failed verifications."
+  - "Which criteria do I use most?"
+  - "What is my verification success rate?"
+  - "List my last 5 blockchain-signed documents."
+  - "How much have I spent on verifications?"
+
+UI SUGGESTIONS:
+  - Chat bubble interface: user messages right-aligned, assistant left-aligned
+  - Input field pinned to bottom with send button
+  - Show suggested question chips above the input on first load
+  - Markdown is NOT returned — render answer as plain text
+  - Show loading dots animation while waiting for response
+  - Add a "Copy" button on each assistant response
+  - Character counter under the input (turns red at 900+ chars)
+
+---
+
+
+8. TRANSACTION HISTORY
+========================
+
+API CALL:
+
+  GET /api/v1/transaction
+  Auth: required
+
+  Response:
+  [
+    {
+      "id": "txn-uuid",
+      "payment_method_id": 1,
+      "amount": 100,
+      "txid": "esewa-transaction-uuid",
+      "status": "success",
+      "created_at": "2026-06-11T08:00:00+05:45"
+    },
+    {
+      "id": "txn-uuid-2",
+      "payment_method_id": 1,
+      "amount": 50,
+      "txid": "esewa-txn-uuid-2",
+      "status": "pending",
+      "created_at": "2026-06-10T14:30:00+05:45"
+    }
+  ]
+
+STATUS VALUES:
+  - pending  → Payment initiated but not yet confirmed by eSewa
+  - success  → Payment verified and credits added to balance
+  - failed   → Payment failed or was rejected
+
+DISPLAY FIELDS:
+  - Date/Time (format: "Jun 11, 2026 8:00 AM")
+  - Amount ("+100 credits")
+  - Payment Method ("eSewa")
+  - Transaction ID (truncated, copyable: "esewa-txn-uui..." with copy icon)
+  - Status (badge: green=success, yellow=pending, red=failed)
+
+UI SUGGESTIONS:
+  - Table layout with pagination or infinite scroll
+  - Filter by status (All / Success / Pending / Failed)
+  - Export CSV button
+  - Empty state: "No transactions yet. Top up your balance to get started."
+
+---
+
+
+9. ERROR HANDLING REFERENCE
+=============================
+
+ALL ERRORS follow this shape:
+  { "detail": "Human readable error message" }
+  OR for 422 validation errors:
+  { "detail": [{ "loc": ["body", "field"], "msg": "error text", "type": "..." }] }
+
+ERROR CODE HANDLING:
+
+  401 Unauthorized
+      Cause:   Token missing, expired, or invalid.
+      Action:  Clear stored token. Redirect to /login.
+               Show toast: "Session expired. Please log in again."
+
+  402 Payment Required
+      Cause:   Insufficient credits for document verification.
+      Action:  Show modal: "You have X credits but this operation requires Y.
+               Top up your balance to continue."
+               Button: "Top Up Now" → /settings/balance
+
+  404 Not Found
+      Cause:   Resource (criteria, document, etc.) does not exist.
+      Action:  Show inline: "The requested item was not found."
+
+  409 Conflict
+      Cause:   Email already registered (on register).
+      Action:  Show field error: "An account with this email already exists."
+
+  413 Request Too Large
+      Cause:   Logo file exceeds 5MB.
+      Action:  Show: "File too large. Maximum allowed size is 5MB."
+
+  422 Unprocessable Entity
+      Cause:   Validation error (invalid email, short password, wrong field types).
+      Action:  Parse detail array. Map each error to its field.
+               Show inline error message under the relevant form field.
+               If not a form (e.g. too many files): show as toast.
+
+  502 Bad Gateway
+      Cause:   AI assistant (Together API) is unavailable.
+      Action:  Show: "AI service is temporarily unavailable. Please try again in a moment."
+               Show Retry button in the chat interface.
+
+  500 Internal Server Error
+      Cause:   Unexpected server error.
+      Action:  Show: "Something went wrong on our end. Please try again."
+               Log the error to your frontend error tracker (e.g. Sentry).
+
+GLOBAL INTERCEPTOR PATTERN (axios example):
+  axios.interceptors.response.use(
+    res => res,
+    err => {
+      if (err.response?.status === 401) {
+        localStorage.removeItem("vivad_token");
+        window.location.href = "/login";
+      }
+      return Promise.reject(err);
+    }
+  );
+
+---
+
+
+10. PAGE LIST WITH API MAPPING
+================================
+
+PAGE: /login
+  APIs: POST /api/v1/auth/login
+  Notes: On success, store token and redirect to /dashboard.
+
+PAGE: /register
+  APIs: POST /api/v1/auth/register
+  Notes: On success, redirect to /login with "Account created" toast.
+
+PAGE: /dashboard
+  APIs: GET /api/v1/company/dashboard
+        GET /api/v1/balance
+  Notes: Primary landing page after login. Shows all stats.
+
+PAGE: /verify
+  APIs: GET /api/v1/criteria/enrolled     (populate criteria dropdown)
+        GET /api/v1/balance               (check before showing form)
+        POST /api/v1/verify/upload        (submit verification)
+  Notes: Requires at least 1 enrolled criteria and balance >= 1.
+
+PAGE: /documents
+  APIs: GET /api/v1/document             (list all documents)
+        GET /api/v1/document/:enroll_id  (single document detail)
+        GET /api/v1/document/:enroll_id/result  (verification result)
+  Notes: Shows history of all document verifications.
+
+PAGE: /criteria
+  APIs: GET /api/v1/criteria             (list all available criteria)
+        GET /api/v1/criteria/enrolled    (list enrolled)
+        POST /api/v1/criteria/enroll     (enroll a criteria)
+        POST /api/v1/criteria            (create custom criteria)
+
+PAGE: /signatures
+  APIs: GET /api/v1/signature            (list all blockchain signatures)
+        GET /api/v1/signature/:enroll_id (single signature)
+        GET /api/v1/signature/verify/:txid (verify txid on Tron)
+
+PAGE: /settings/profile
+  APIs: GET /api/v1/company/me
+        PATCH /api/v1/company/me
+        POST /api/v1/company/logo
+
+PAGE: /settings/balance
+  APIs: GET /api/v1/balance
+        GET /api/v1/payment_method
+        POST /api/v1/payment/initialize
+        GET /api/v1/transaction
+  Notes: Also handles eSewa return redirects via query params.
+
+PAGE: /settings/api-keys
+  APIs: GET /api/v1/apikey               (list keys)
+        POST /api/v1/apikey              (generate new key)
+        DELETE /api/v1/apikey/:id        (revoke key)
+
+PAGE: /assistant
+  APIs: POST /api/v1/assistant/chat
+
+PAGE: /transactions
+  APIs: GET /api/v1/transaction
+
+PAGE: /plans (if implementing plan-based payments)
+  APIs: GET /api/v1/plan
+        POST /api/v1/payment
+
+---
+
+
+APPENDIX: QUICK REFERENCE — ALL ENDPOINTS
+==========================================
+
+  METHOD  PATH                              AUTH   DESCRIPTION
+  ------  --------------------------------  -----  ---------------------------
+  GET     /health                           no     Health check
+  POST    /api/v1/auth/register             no     Register company
+  POST    /api/v1/auth/login                no     Login, get JWT
+  GET     /api/v1/company/me                JWT    Get company profile
+  PATCH   /api/v1/company/me                JWT    Update company profile
+  POST    /api/v1/company/logo              JWT    Upload company logo
+  GET     /api/v1/company/dashboard         JWT    Full dashboard stats
+  GET     /api/v1/balance                   JWT    Get credit balance
+  POST    /api/v1/balance/topup             JWT    Direct balance top-up
+  GET     /api/v1/criteria                  JWT    List all criteria
+  POST    /api/v1/criteria                  JWT    Create custom criteria
+  POST    /api/v1/criteria/enroll           JWT    Enroll a criteria
+  GET     /api/v1/criteria/enrolled         JWT    List enrolled criteria
+  GET     /api/v1/category                  JWT    List document categories
+  POST    /api/v1/category                  JWT    Create category
+  POST    /api/v1/category/enroll           JWT    Enroll a category
+  GET     /api/v1/category/enrolled         JWT    List enrolled categories
+  POST    /api/v1/verify                    JWT/K  Verify (JSON paths)
+  POST    /api/v1/verify/upload             JWT/K  Verify (file upload)
+  POST    /api/v1/document                  JWT    Create document record
+  GET     /api/v1/document                  JWT    List documents
+  GET     /api/v1/document/:id              JWT    Get single document
+  GET     /api/v1/document/:id/result       JWT    Get verification result
+  POST    /api/v1/document/verify           JWT    Verify via document route
+  GET     /api/v1/signature                 JWT    List all signatures
+  GET     /api/v1/signature/:id             JWT    Get signature by enroll id
+  GET     /api/v1/signature/verify/:txid    JWT    Verify blockchain txid
+  POST    /api/v1/signature                 JWT    Sign a document
+  GET     /api/v1/plan                      JWT    List plans
+  GET     /api/v1/payment_method            no     List payment methods
+  POST    /api/v1/payment                   JWT    Create plan payment
+  GET     /api/v1/payment                   JWT    List payments
+  POST    /api/v1/payment/initialize        JWT    Init eSewa payment
+  GET     /api/v1/payment/success           no     eSewa success callback
+  GET     /api/v1/payment/failure           no     eSewa failure callback
+  GET     /api/v1/transaction               JWT    List transactions
+  POST    /api/v1/apikey                    JWT    Generate API key
+  GET     /api/v1/apikey                    JWT    List API keys
+  DELETE  /api/v1/apikey/:id               JWT    Revoke API key
+  POST    /api/v1/assistant/chat            JWT/K  AI assistant chat
+
+  JWT = Bearer token required
+  K   = Also accepts X-API-Key header
+  no  = No auth required
+
+---
+End of VIVAD X Frontend Developer Workflow Guide
