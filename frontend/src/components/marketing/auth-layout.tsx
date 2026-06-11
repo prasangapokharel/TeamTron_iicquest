@@ -3,9 +3,9 @@ import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 
 const SPECS = [
-  { term: "Verify", detail: "Upload documents and receive a structured risk verdict" },
-  { term: "Integrate", detail: "REST API with company-scoped keys" },
-  { term: "Audit", detail: "Each approved run anchored on Tron" },
+  { term: "Verify", detail: "Upload docs and get a clear pass/fail with a risk score" },
+  { term: "Integrate", detail: "Plug into your stack with API keys scoped to your company" },
+  { term: "Audit", detail: "Approved runs get a Tron hash anyone can check" },
 ];
 
 export function AuthLayout({
@@ -31,7 +31,7 @@ export function AuthLayout({
           <div className="auth-aside-body">
             <Logo size="lg" href="/" />
             <p className="auth-aside-lead">
-              Document verification for regulated teams in Nepal.
+              Document checks for banks, manpower agencies, and consultancies in Nepal.
             </p>
           </div>
 

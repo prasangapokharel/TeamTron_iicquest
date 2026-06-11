@@ -34,7 +34,7 @@ export default function LoginPage() {
   return (
     <AuthLayout
       title="Sign in"
-      subtitle="Access your organization workspace"
+      subtitle="Welcome back. Sign in to your workspace."
       footer={
         <p>
           Need an account? <Link href="/signup">Register</Link>

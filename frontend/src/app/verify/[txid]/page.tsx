@@ -29,7 +29,7 @@ export default function PublicVerifyPage() {
             <h1 className="text-xl font-semibold">Public Blockchain Verify</h1>
           </div>
           <p className="text-sm text-[var(--text-muted)] mb-6">
-            Anyone can verify this document hash on Tron — no login required.
+            Anyone can check this hash on Tron. No login needed.
           </p>
 
           {error && <p className="auth-error">{error}</p>}
@@ -38,7 +38,7 @@ export default function PublicVerifyPage() {
             <div className="result-mono-block">
               <p><span>Status</span>{data.status}</p>
               <p><span>TXID</span>{data.txid}</p>
-              <p><span>Hash (memo)</span>{data.hash || "—"}</p>
+              <p><span>Hash (memo)</span>{data.hash || "n/a"}</p>
               <a
                 href={data.verify_url}
                 target="_blank"

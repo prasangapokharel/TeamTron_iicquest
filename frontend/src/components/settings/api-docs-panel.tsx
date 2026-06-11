@@ -78,7 +78,7 @@ const data = await res.json();`;
           <Link href="/criteria" className="api-doc-link">
             Criteria <ArrowUpRight size={12} />
           </Link>{" "}
-          and enroll a rule pack (e.g. Bank KYC, Manpower). Copy the criteria UUID — you need it on every verify call.
+          and enroll a rule pack (e.g. Bank KYC, Manpower). Copy the criteria UUID. You need it on every verify call.
         </>
       ),
     },
@@ -100,7 +100,7 @@ const data = await res.json();`;
       title: "Generate an API key",
       body: (
         <>
-          Click <strong>Generate key</strong> above. Copy the key immediately — it is only shown once. Store it in your
+          Click <strong>Generate key</strong> above. Copy the key right away (we only show it once). Store it in your
           server environment (never in frontend code).
         </>
       ),
@@ -205,8 +205,8 @@ const data = await res.json();`;
           Replace <code>YOUR_API_KEY</code> with the key you generated. Example uses{" "}
           <strong>{sampleCriteriaName}</strong> criteria ID.
         </p>
-        <CodeBlock code={curlUpload} label="cURL — upload & verify" />
-        <CodeBlock code={curlJson} label="cURL — JSON paths" />
+        <CodeBlock code={curlUpload} label="cURL: upload and verify" />
+        <CodeBlock code={curlJson} label="cURL: JSON paths" />
         <CodeBlock code={fetchExample} label="JavaScript (fetch)" />
         <CodeBlock code={SAMPLE_RESPONSE} label="Sample response" />
       </div>
@@ -215,9 +215,9 @@ const data = await res.json();`;
         <h3 className="api-doc-section-title">Authentication</h3>
         <ul className="balance-info-list">
           <li>Send <code>X-Api-Key: your_key</code> on every request (server-side only).</li>
-          <li>Alternatively use <code>Authorization: Bearer JWT</code> from login — for dashboard, not integrations.</li>
+          <li>For the dashboard only, you can use <code>Authorization: Bearer JWT</code> from login. Integrations should use API keys.</li>
           <li>Revoked keys return <code>401 Invalid or revoked API key</code> immediately.</li>
-          <li>Insufficient credits return an error — top up on Balance first.</li>
+          <li>If you run out of credits, the call fails. Top up on Balance first.</li>
         </ul>
       </div>
     </div>

@@ -54,7 +54,7 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
     <div className="verify-panel">
       <h2 className="settings-section-title">New verification</h2>
       <p className="settings-section-desc">
-        Upload 1–5 images · AI extraction · rules · blockchain signing
+        Upload 1 to 5 images. We extract fields, run your rules, and sign on Tron if it passes.
       </p>
 
       <div className="auth-field">
@@ -87,7 +87,7 @@ export function VerifyPanel({ onVerified }: { onVerified?: (result: Verification
         <label htmlFor="doc-file-upload" className="upload-label">
           <Upload size={22} />
           <span>Drop images or click to browse</span>
-          <span className="verify-upload-hint">JPG/PNG · max 5 files · 10MB each</span>
+          <span className="verify-upload-hint">JPG or PNG, up to 5 files, 10MB each</span>
         </label>
       </div>
 

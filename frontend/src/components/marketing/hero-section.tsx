@@ -216,8 +216,8 @@ export function HeroSection() {
                 <Scale size={13} strokeWidth={2.25} />
               </span>
               <span>
-                <span className="hero-badge-highlight">36,000+</span> pending cases ·{" "}
-                <span className="hero-badge-highlight">3 hours → 6 seconds</span>
+                <span className="hero-badge-highlight">36,000+</span> pending cases.{" "}
+                <span className="hero-badge-highlight">3 hours down to 6 seconds</span>
               </span>
             </div>
 
@@ -230,10 +230,10 @@ export function HeroSection() {
             </h1>
 
             <p className="hero-subtitle hero-subtitle-insforge">
-              Compare complaint, contract, license &amp; receipt in one pass.
-              Rules flag contradictions — banks get{" "}
+              Compare complaint, contract, license and receipt in one pass.
+              When rules spot a mismatch, your system gets{" "}
               <strong className="hero-subtitle-emphasis">BLOCK</strong> or{" "}
-              <strong className="hero-subtitle-emphasis">APPROVE</strong> via API.
+              <strong className="hero-subtitle-emphasis">APPROVE</strong> from the API.
             </p>
 
             <div className="hero-cta hero-cta-insforge">

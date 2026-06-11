@@ -1,107 +1,101 @@
 import { cn } from "@/lib/utils";
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("skeleton skeleton--flat", className)} aria-hidden />;
+export function Skeleton({
+  className,
+  delay,
+}: {
+  className?: string;
+  delay?: number;
+}) {
+  return (
+    <div
+      className={cn("skeleton", className)}
+      style={delay !== undefined ? { animationDelay: `${delay}ms` } : undefined}
+      aria-hidden
+    />
+  );
 }
 
 export function DashboardSkeleton() {
   return (
     <div className="dash-skeleton dash-skeleton--board" aria-busy="true" aria-label="Loading dashboard">
-      <div className="dash-board-header">
+      <header className="dash-board-header">
         <div className="dash-board-header-main">
-          <Skeleton className="h-5 w-32 mb-2.5" />
-          <Skeleton className="h-3.5 w-72 max-w-full" />
+          <Skeleton className="skeleton-line skeleton-line--title" />
+          <Skeleton className="skeleton-line skeleton-line--desc" delay={80} />
         </div>
         <div className="dash-board-header-actions">
-          <Skeleton className="h-8 w-24" />
-          <Skeleton className="h-8 w-36" />
+          <Skeleton className="skeleton-btn" delay={120} />
+          <Skeleton className="skeleton-btn skeleton-btn--wide" delay={160} />
         </div>
-      </div>
+      </header>
 
       <section className="dash-board dash-board--loading">
         <div className="dash-board-metrics">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="dash-board-metric">
-              <Skeleton className="h-1.5 w-1.5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <Skeleton className="h-8 w-12 mb-2" />
-                <Skeleton className="h-3 w-16" />
-              </div>
+            <div key={i} className="dash-board-metric dash-board-metric--skeleton">
+              <Skeleton className="skeleton-metric-value" delay={i * 60} />
+              <Skeleton className="skeleton-metric-label" delay={i * 60 + 40} />
             </div>
           ))}
         </div>
 
         <div className="dash-board-analytics">
-          <div className="dash-board-cell">
-            <Skeleton className="h-3.5 w-28 mb-1" />
-            <Skeleton className="h-3 w-44 mb-5" />
-            <div className="dash-skeleton-donut">
-              <Skeleton className="dash-skeleton-donut-ring" />
-              <div className="dash-skeleton-donut-hole" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="dash-board-cell dash-board-cell--skeleton">
+              <Skeleton className="skeleton-line skeleton-line--cell-title" delay={i * 70} />
+              <Skeleton className="skeleton-line skeleton-line--cell-desc" delay={i * 70 + 50} />
+              <Skeleton
+                className={cn(
+                  "skeleton-chart",
+                  i === 0 && "skeleton-chart--donut",
+                  i === 1 && "skeleton-chart--ring",
+                )}
+                delay={i * 70 + 100}
+              />
             </div>
-            <div className="dash-skeleton-legend">
-              <Skeleton className="h-3 w-16" />
-              <Skeleton className="h-3 w-14" />
-              <Skeleton className="h-3 w-16" />
-            </div>
-          </div>
-          <div className="dash-board-cell">
-            <Skeleton className="h-3.5 w-24 mb-1" />
-            <Skeleton className="h-3 w-40 mb-5" />
-            <Skeleton className="dash-skeleton-ring mx-auto" />
-          </div>
-          <div className="dash-board-cell">
-            <Skeleton className="h-3.5 w-20 mb-1" />
-            <Skeleton className="h-3 w-36 mb-5" />
-            <Skeleton className="h-32 w-full" />
-          </div>
+          ))}
         </div>
 
         <div className="dash-board-body">
-          <div className="dash-board-cell dash-board-cell--table">
-            <div className="dash-cell-head mb-4">
-              <div className="flex-1">
-                <Skeleton className="h-3.5 w-36 mb-2" />
-                <Skeleton className="h-3 w-52" />
+          <div className="dash-board-cell dash-board-cell--table dash-board-cell--skeleton">
+            <div className="dash-skeleton-section-head">
+              <div className="dash-skeleton-section-copy">
+                <Skeleton className="skeleton-line skeleton-line--cell-title" />
+                <Skeleton className="skeleton-line skeleton-line--cell-desc" delay={60} />
               </div>
-              <Skeleton className="h-3 w-16" />
+              <Skeleton className="skeleton-line skeleton-line--link" delay={90} />
             </div>
-            <div className="dash-skeleton-table">
-              <div className="dash-skeleton-table-head">
-                <Skeleton className="h-3 w-14" />
-                <Skeleton className="h-3 w-12" />
-                <Skeleton className="h-3 w-10" />
-              </div>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="dash-skeleton-table-row">
-                  <div>
-                    <Skeleton className="h-3.5 w-28 mb-1.5" />
-                    <Skeleton className="h-3 w-16" />
-                  </div>
-                  <Skeleton className="h-5 w-14" />
-                  <Skeleton className="h-3.5 w-8" />
+            <div className="dash-skeleton-rows">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="dash-skeleton-row">
+                  <Skeleton className="skeleton-row-primary" delay={i * 50} />
+                  <Skeleton className="skeleton-row-badge" delay={i * 50 + 30} />
+                  <Skeleton className="skeleton-row-num" delay={i * 50 + 60} />
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="dash-board-cell dash-board-cell--profile">
+          <div className="dash-board-cell dash-board-cell--profile dash-board-cell--skeleton">
             <div className="dash-skeleton-profile-head">
-              <Skeleton className="h-10 w-10 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <Skeleton className="h-3.5 w-full mb-2" />
-                <Skeleton className="h-3 w-4/5" />
+              <Skeleton className="skeleton-avatar" />
+              <div className="dash-skeleton-profile-copy">
+                <Skeleton className="skeleton-line skeleton-line--profile-title" delay={40} />
+                <Skeleton className="skeleton-line skeleton-line--profile-desc" delay={80} />
               </div>
             </div>
-            <Skeleton className="h-9 w-full mb-4" />
-            <div className="dash-skeleton-profile-grid">
+            <Skeleton className="skeleton-block skeleton-block--btn" delay={120} />
+            <div className="dash-skeleton-stat-grid">
               {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full" />
+                <Skeleton key={i} className="skeleton-stat-tile" delay={i * 45} />
               ))}
             </div>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-full mt-2" />
-            ))}
+            <div className="dash-skeleton-links">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="skeleton-link-row" delay={i * 40} />
+              ))}
+            </div>
           </div>
         </div>
       </section>

@@ -13,27 +13,27 @@ gsap.registerPlugin(ScrollTrigger);
 const FAQ_ITEMS = [
   {
     q: "What documents can VivadX verify?",
-    a: "VivadX supports PDFs and images — passports, citizenship certificates, licenses, invoices, contracts, and more. Upload 2–5 documents per verification session.",
+    a: "PDFs and images work: passports, citizenship, licenses, invoices, contracts, and more. Upload 2 to 5 files per run.",
   },
   {
     q: "How does blockchain signing work?",
-    a: "When fields are verified (Green), VivadX hashes the verified data and signs it on the Tron network. A QR code is generated for public verification by regulators and auditors.",
+    a: "When a field passes (Green), we hash the data and sign it on Tron. You get a QR link regulators can open without logging in.",
   },
   {
     q: "Are my documents stored permanently?",
-    a: "No. VivadX is privacy-first — raw documents are not stored permanently. Only verification metadata, flags, and blockchain hashes are retained in your register.",
+    a: "No. We don't keep your raw files long term. We store the verification result, flags, and blockchain hash in your register.",
   },
   {
     q: "Can banks integrate via API?",
-    a: "Yes. Send documents to POST /api/v1/verify and receive JSON with field-level flags, risk score (0–100), and Tron hash — ready for your core banking systems.",
+    a: "Yes. POST documents to /api/v1/verify and you get JSON with field flags, a 0-100 risk score, and the Tron hash for your core system.",
   },
   {
     q: "What industries does VivadX support?",
-    a: "Banks, manpower agencies, consultancies, insurance firms, and more. Dynamic rule sets load per category — Bank KYC, Manpower, Consultancy — or you can pick fields manually.",
+    a: "Banks, manpower agencies, consultancies, insurance, and similar teams. Pick a category pack or choose fields yourself.",
   },
   {
     q: "What do Red, Orange, and Green mean?",
-    a: "Red flags critical issues or fraud risk. Orange indicates warnings that need review. Green means the field is verified correctly and eligible for blockchain signing.",
+    a: "Red is a serious issue or fraud signal. Orange needs a human look. Green means the field checked out and can be signed on chain.",
   },
 ] as const;
 

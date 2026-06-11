@@ -30,7 +30,7 @@ export default function DocumentResultPage() {
         title="Verification result"
         description={
           enrollId
-            ? `Enrollment ${enrollId.slice(0, 8)}… · AI extraction, flags, and blockchain proof`
+            ? `Run ${enrollId.slice(0, 8)}: extracted fields, flags, and blockchain proof`
             : "Document verification report"
         }
         actions={
@@ -68,11 +68,11 @@ export default function DocumentResultPage() {
             </div>
             <div>
               <p className="settings-aside-title">Risk score</p>
-              <p className="balance-metric-value">{result.risk_score ?? "—"}</p>
+              <p className="balance-metric-value">{result.risk_score ?? "n/a"}</p>
             </div>
             <div>
               <p className="settings-aside-title">Criteria</p>
-              <p className="text-sm">{result.criteria?.name ?? "—"}</p>
+              <p className="text-sm">{result.criteria?.name ?? "n/a"}</p>
             </div>
             <div>
               <p className="settings-aside-title">On-chain</p>

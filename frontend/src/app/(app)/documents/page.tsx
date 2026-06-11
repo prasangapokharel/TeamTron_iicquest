@@ -125,7 +125,7 @@ export default function DocumentsPage() {
                       </td>
                       <td><span className="badge badge-ignored">{d.status}</span></td>
                       <td><VerdictBadge verdict={d.verdict} /></td>
-                      <td className="dash-table-num">{d.risk_score ?? "—"}</td>
+                      <td className="dash-table-num">{d.risk_score ?? "n/a"}</td>
                       <td className="dash-table-num">{d.paths?.length ?? 0}</td>
                       <td className="dash-table-action">
                         <Link href={`/documents/${d.enroll_id}/result`} aria-label="View">

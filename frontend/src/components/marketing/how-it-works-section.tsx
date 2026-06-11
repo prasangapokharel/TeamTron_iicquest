@@ -26,7 +26,7 @@ const STEPS = [
     icon: Link2,
     step: "03",
     title: "Blockchain signing",
-    desc: "Verified fields are hashed and signed on Tron — immutable proof with a public QR code.",
+    desc: "Green fields get hashed and signed on Tron. Share the QR link so anyone can verify.",
   },
   {
     icon: Archive,

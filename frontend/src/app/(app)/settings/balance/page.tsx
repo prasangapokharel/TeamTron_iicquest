@@ -46,7 +46,7 @@ export default function BalancePage() {
     <div className="dash-content dash-content--saas">
       <PageHeader
         title="Balance"
-        description="Manage verification credits · 1 credit per document check"
+        description="Top up credits. One credit covers one document check."
       />
 
       {(error || msg) && (

@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VivadX — Smart Document Reconciliation & Verification",
+  title: "VivadX | Smart Document Reconciliation & Verification",
   description:
     "Upload documents, AI flags risks in seconds, and anchor verified fields on Tron blockchain. Built for banks, manpower agencies, and consultancies.",
   keywords: [

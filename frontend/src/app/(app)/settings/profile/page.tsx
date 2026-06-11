@@ -101,7 +101,7 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="profile-logo-actions">
-                  <p className="profile-logo-hint">PNG or JPG · Recommended 256×256px</p>
+                  <p className="profile-logo-hint">PNG or JPG. 256×256px works well.</p>
                   <label className="dash-btn dash-btn--ghost profile-upload-btn">
                     {uploading ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -156,7 +156,7 @@ export default function ProfilePage() {
               <div>
                 <dt>Status</dt>
                 <dd className={`settings-status settings-status--${company?.status ?? "active"}`}>
-                  {company?.status ?? "—"}
+                  {company?.status ?? "n/a"}
                 </dd>
               </div>
               <div>
@@ -166,12 +166,12 @@ export default function ProfilePage() {
               <div>
                 <dt>Company ID</dt>
                 <dd>
-                  <code className="settings-id">{company?.id?.slice(0, 8) ?? "—"}</code>
+                  <code className="settings-id">{company?.id?.slice(0, 8) ?? "n/a"}</code>
                 </dd>
               </div>
               <div>
                 <dt>Workspace</dt>
-                <dd>{company?.company_name ?? "—"}</dd>
+                <dd>{company?.company_name ?? "n/a"}</dd>
               </div>
             </dl>
           </div>

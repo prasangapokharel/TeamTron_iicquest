@@ -238,8 +238,7 @@ export function MarketingFooter() {
           <div className="footer-brand">
             <Logo />
             <p className="footer-tagline">
-              Smart document reconciliation and verification — powered by AI and
-              anchored on the Tron blockchain.
+              Document checks with AI extraction and Tron-backed proof when a run passes.
             </p>
             <Link href="/signup" className="btn-primary footer-cta">
               Get started

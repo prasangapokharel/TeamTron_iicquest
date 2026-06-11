@@ -26,7 +26,7 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Sliders,
     title: "Dynamic rules engine",
-    desc: "Load category-specific criteria — Bank KYC, Manpower, Consultancy — or pick fields manually.",
+    desc: "Use built-in packs like Bank KYC or Manpower, or pick the fields you care about.",
   },
   {
     icon: Lock,
@@ -41,7 +41,7 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Code2,
     title: "Bank-ready API",
-    desc: "Integrate via POST /api/v1/verify — receive flags, risk score, and Tron hash as JSON.",
+    desc: "Hit POST /api/v1/verify and get flags, risk score, and Tron hash back as JSON.",
   },
   {
     icon: BarChart3,

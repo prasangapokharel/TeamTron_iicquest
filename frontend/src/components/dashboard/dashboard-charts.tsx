@@ -230,9 +230,9 @@ export function ActivityAreaChart({
         .reverse()
         .map((r, i) => ({ idx: `Run ${i + 1}`, score: r.risk_score ?? 0 }))
   : [
-      { idx: "—", score: 0 },
-      { idx: "—", score: 0 },
-      { idx: "—", score: 0 },
+      { idx: "", score: 0 },
+      { idx: "", score: 0 },
+      { idx: "", score: 0 },
     ];
 
   return (
