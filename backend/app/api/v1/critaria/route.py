@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from db.config.env import get_db
 from db.models.company import Company
-from app.helper.deps import get_current_company
+from app.helper.deps import get_current_company, get_company_from_jwt_or_apikey
 from app.api.v1.critaria import service
 
 router = APIRouter(prefix="/criteria", tags=["criteria"])
@@ -46,5 +46,5 @@ def enroll(
 
 
 @router.get("/enrolled")
-def get_enrolled(db: Session = Depends(get_db), company: Company = Depends(get_current_company)):
+def get_enrolled(db: Session = Depends(get_db), company: Company = Depends(get_company_from_jwt_or_apikey)):
     return service.get_enrolled_criteria(db, str(company.id))

@@ -43,7 +43,7 @@ def create_document(
 
 
 @router.get("")
-def list_documents(db: Session = Depends(get_db), company: Company = Depends(get_current_company)):
+def list_documents(db: Session = Depends(get_db), company: Company = Depends(get_company_from_jwt_or_apikey)):
     return service.list_documents(db, str(company.id))
 
 

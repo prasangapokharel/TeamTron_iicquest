@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from db.config.env import get_db
 from db.models.company import Company
-from app.helper.deps import get_current_company
+from app.helper.deps import get_current_company, get_company_from_jwt_or_apikey
 from app.api.v1.company import service
 
 router = APIRouter(prefix="/company", tags=["company"])
@@ -21,7 +21,7 @@ def get_me(company: Company = Depends(get_current_company)):
 
 
 @router.get("/dashboard")
-def dashboard(db: Session = Depends(get_db), company: Company = Depends(get_current_company)):
+def dashboard(db: Session = Depends(get_db), company: Company = Depends(get_company_from_jwt_or_apikey)):
     return service.get_dashboard(db, company)
 
 
