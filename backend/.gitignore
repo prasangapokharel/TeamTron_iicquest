@@ -6,7 +6,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-uploads/
 *.egg-info/
 dist/
 build/
