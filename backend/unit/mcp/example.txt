@@ -1,0 +1,40 @@
+VIVAD X — MCP Server Connection Guide
+======================================
+
+The MCP server exposes 6 tools from the VIVAD X backend to any MCP-compatible client (Cursor IDE, Claude Desktop, etc.).
+
+TOOLS
+-----
+  get_dashboard(api_key)                        — Company stats: verified, failed, review, pending, balance
+  get_balance(api_key)                          — Current credit balance
+  list_criteria(api_key)                        — Enrolled criteria with fields and rules
+  get_verification_history(api_key, limit=10)   — Recent document verifications
+  ask_assistant(api_key, question)              — VIVAD AI assistant with live DB context
+  verify_document(api_key, image_paths, criteria_id) — Run full document verification pipeline
+
+CONNECT TO CURSOR IDE
+---------------------
+1. Open Cursor Settings → MCP Servers
+2. Add a new server and paste the contents of unit/mcp/cursor_config.json
+3. Save and reload
+
+The config uses the venv Python at:
+  /home/prasanga/TeamTron_iicquest/backend/.venv/bin/python
+
+And runs:
+  /home/prasanga/TeamTron_iicquest/backend/mcp_server.py
+
+AUTH
+----
+All tools require an api_key parameter.
+Generate one from the VIVAD X dashboard or via POST /api/v1/apikey/
+
+START MANUALLY
+--------------
+  cd /home/prasanga/TeamTron_iicquest/backend
+  source .venv/bin/activate
+  python mcp_server.py
+
+RUN TESTS
+---------
+  python unit/mcp/test_mcp.py

@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "vivad-x": {
+      "command": "/home/prasanga/TeamTron_iicquest/backend/.venv/bin/python",
+      "args": ["/home/prasanga/TeamTron_iicquest/backend/mcp_server.py"],
+      "env": {
+        "DATABASE_URL": "postgresql://postgres.owsoropgwbhirosppyro:UNNm2g7qsGcOJrQi@aws-1-ap-south-1.pooler.supabase.com:5432/postgres",
+        "TOGETHER_API_KEY": "tgp_v1_9Pa4JRWabLClaA-Dgfd_54fqcTSNqXawi5apgnEkkxw",
+        "GROQ_API_KEY": "YOUR_GROQ_API_KEY",
+        "GROQ_API_KEY2": "YOUR_GROQ_API_KEY2",
+        "GROQ_API_KEY3": "YOUR_GROQ_API_KEY3",
+        "GROQ_API_KEY4": "YOUR_GROQ_API_KEY4",
+        "GROQ_API_KEY5": "YOUR_GROQ_API_KEY5",
+        "JWT_SECRET": "vivadx-9k2mP7xQnL4rJ8wY3hF6tA1cE0bN5sV",
+        "TRON_PRIVATE_KEY": "22ae7351e0a445f56b1e1b1b1ed22249d20d3f5b02593506a00b30023390ee11",
+        "TRON_GRID_API": "https://nile.trongrid.io",
+        "TRON_API_KEY": "0f845ecc-b566-46a1-89b8-fb4da8422974",
+        "TRON_RECEIVER_ADDRESS": "TBiMgwhPkZdoWAEBu3rctSdViqRNqN7Wb9",
+        "SUPABASE_URL": "https://owsoropgwbhirosppyro.supabase.co",
+        "SUPABASE_KEY": "sb_publishable_fezDkydq6oUoIohESN5JOg_Xq4n8mvW"
+      }
+    }
+  }
+}
