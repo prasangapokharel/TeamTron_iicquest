@@ -5,21 +5,19 @@
 ---
 
 ## Why they need it most:
-─────────────────────
+
 **500,000+** Nepali workers go abroad yearly
 Every worker needs 6–8 documents verified
 Passport, medical, training cert, police clearance
 Labor agreement, insurance, visa copy
 
-Current situation:
-──────────────────
+**Current situation:**
 Staff manually checks each document
 One file takes 20–30 minutes
 Fraud is rampant — fake medical certificates
 Agencies get blacklisted if they send fraudulent workers
 
-With VivadX:
-────────────
+**With VivadX:**
 Same verification in 30 seconds
 Fraud detected automatically
 Blockchain proof protects agency legally
